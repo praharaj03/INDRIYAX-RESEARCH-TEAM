@@ -3,7 +3,11 @@ import { useState } from "react";
 import { events } from "@/lib/data/index";
 import EventCard from "@/components/cards/EventCard";
 import AnimateIn from "@/components/ui/AnimateIn";
-import { RiCalendarEventLine, RiHistoryLine, RiLayoutGridLine } from "react-icons/ri";
+import {
+  RiCalendarEventLine,
+  RiHistoryLine,
+  RiLayoutGridLine,
+} from "react-icons/ri";
 
 const tabs = [
   { key: "all", label: "All Events", icon: RiLayoutGridLine },
@@ -11,12 +15,13 @@ const tabs = [
   { key: "past", label: "Past", icon: RiHistoryLine },
 ] as const;
 
-type Tab = typeof tabs[number]["key"];
+type Tab = (typeof tabs)[number]["key"];
 
 export default function EventsPage() {
   const [active, setActive] = useState<Tab>("all");
 
-  const filtered = active === "all" ? events : events.filter((e) => e.type === active);
+  const filtered =
+    active === "all" ? events : events.filter((e) => e.type === active);
   const upcomingCount = events.filter((e) => e.type === "upcoming").length;
   const pastCount = events.filter((e) => e.type === "past").length;
 
@@ -56,9 +61,13 @@ export default function EventsPage() {
             >
               <Icon size={14} />
               {label}
-              <span className={`text-xs px-1.5 py-0.5 rounded-md font-semibold ${
-                active === key ? "bg-dark/20 text-dark" : "bg-white/5 text-gray-600"
-              }`}>
+              <span
+                className={`text-xs px-1.5 py-0.5 rounded-md font-semibold ${
+                  active === key
+                    ? "bg-dark/20 text-dark"
+                    : "bg-white/5 text-gray-600"
+                }`}
+              >
                 {counts[key]}
               </span>
             </button>

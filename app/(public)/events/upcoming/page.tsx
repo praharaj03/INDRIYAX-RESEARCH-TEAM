@@ -16,9 +16,14 @@ export default function UpcomingEventsPage() {
               <RiCalendarEventLine /> Upcoming
             </div>
             <h1 className="text-4xl font-bold text-white">Upcoming Events</h1>
-            <p className="text-gray-500 mt-2">{upcoming.length} events — register early to secure your spot</p>
+            <p className="text-gray-500 mt-2">
+              {upcoming.length} events — register early to secure your spot
+            </p>
           </div>
-          <Link href="/events" className="hidden md:flex items-center gap-1 text-sm text-gray-500 hover:text-primary transition-colors mt-2">
+          <Link
+            href="/events"
+            className="hidden md:flex items-center gap-1 text-sm text-gray-500 hover:text-primary transition-colors mt-2"
+          >
             View all events <RiArrowRightLine />
           </Link>
         </div>

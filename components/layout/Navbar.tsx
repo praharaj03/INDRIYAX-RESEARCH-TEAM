@@ -2,16 +2,39 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
-import { RiMenuLine, RiCloseLine, RiShieldUserLine, RiArrowDownSLine, RiCalendarEventLine, RiHistoryLine, RiLayoutGridLine } from "react-icons/ri";
+import {
+  RiMenuLine,
+  RiCloseLine,
+  RiShieldUserLine,
+  RiArrowDownSLine,
+  RiCalendarEventLine,
+  RiHistoryLine,
+  RiLayoutGridLine,
+} from "react-icons/ri";
 import { motion, AnimatePresence } from "framer-motion";
 import { siteConfig } from "@/config/site";
 
 const links = siteConfig.navLinks;
 
 const eventDropdown = [
-  { href: "/events", label: "All Events", icon: RiLayoutGridLine, desc: "Browse everything" },
-  { href: "/events/upcoming", label: "Upcoming", icon: RiCalendarEventLine, desc: "Register now" },
-  { href: "/events/past", label: "Past Events", icon: RiHistoryLine, desc: "Recordings & summaries" },
+  {
+    href: "/events",
+    label: "All Events",
+    icon: RiLayoutGridLine,
+    desc: "Browse everything",
+  },
+  {
+    href: "/events/upcoming",
+    label: "Upcoming",
+    icon: RiCalendarEventLine,
+    desc: "Register now",
+  },
+  {
+    href: "/events/past",
+    label: "Past Events",
+    icon: RiHistoryLine,
+    desc: "Recordings & summaries",
+  },
 ];
 
 export default function Navbar() {
@@ -30,7 +53,10 @@ export default function Navbar() {
   // Close dropdown on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
         setEventsOpen(false);
       }
     };
@@ -39,13 +65,20 @@ export default function Navbar() {
   }, []);
 
   return (
-    <nav className={`sticky top-0 z-50 transition-all duration-300 ${scrolled ? "glass border-b border-border shadow-lg shadow-black/30" : "bg-transparent"}`}>
+    <nav
+      className={`sticky top-0 z-50 transition-all duration-300 ${scrolled ? "glass border-b border-border shadow-lg shadow-black/30" : "bg-transparent"}`}
+    >
       <div className="max-w-6xl mx-auto px-4 flex items-center justify-between h-16">
-
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5 group">
           <div className="w-8 h-8 rounded-lg overflow-hidden border border-primary/20 group-hover:border-primary/50 transition-colors shrink-0">
-            <Image src="/logo.jpeg" alt="IndriyaX" width={32} height={32} className="object-cover w-full h-full" />
+            <Image
+              src="/logo.jpeg"
+              alt="IndriyaX"
+              width={32}
+              height={32}
+              className="object-cover w-full h-full"
+            />
           </div>
           <span className="font-bold text-white text-lg tracking-tight">
             Indriya<span className="text-primary">X</span>
@@ -54,9 +87,11 @@ export default function Navbar() {
 
         {/* Desktop nav */}
         <div className="hidden md:flex gap-1 items-center">
-
           {/* Home */}
-          <Link href="/" className="text-sm text-gray-400 hover:text-white px-3 py-2 rounded-lg hover:bg-white/5 transition-all">
+          <Link
+            href="/"
+            className="text-sm text-gray-400 hover:text-white px-3 py-2 rounded-lg hover:bg-white/5 transition-all"
+          >
             Home
           </Link>
 
@@ -67,7 +102,10 @@ export default function Navbar() {
               className={`flex items-center gap-1 text-sm px-3 py-2 rounded-lg transition-all ${eventsOpen ? "text-white bg-white/5" : "text-gray-400 hover:text-white hover:bg-white/5"}`}
             >
               Events
-              <RiArrowDownSLine size={15} className={`transition-transform duration-200 ${eventsOpen ? "rotate-180" : ""}`} />
+              <RiArrowDownSLine
+                size={15}
+                className={`transition-transform duration-200 ${eventsOpen ? "rotate-180" : ""}`}
+              />
             </button>
 
             <AnimatePresence>
@@ -90,7 +128,9 @@ export default function Navbar() {
                         <Icon size={13} className="text-primary" />
                       </div>
                       <div>
-                        <p className="text-white text-sm font-medium leading-none mb-0.5">{label}</p>
+                        <p className="text-white text-sm font-medium leading-none mb-0.5">
+                          {label}
+                        </p>
                         <p className="text-gray-600 text-xs">{desc}</p>
                       </div>
                     </Link>
@@ -102,16 +142,26 @@ export default function Navbar() {
 
           {/* Other links */}
           {links.map((l) => (
-            <Link key={l.href} href={l.href} className="text-sm text-gray-400 hover:text-white px-3 py-2 rounded-lg hover:bg-white/5 transition-all">
+            <Link
+              key={l.href}
+              href={l.href}
+              className="text-sm text-gray-400 hover:text-white px-3 py-2 rounded-lg hover:bg-white/5 transition-all"
+            >
               {l.label}
             </Link>
           ))}
 
           <div className="flex items-center gap-2 ml-2">
-            <Link href="/register" className="bg-primary text-dark text-sm font-semibold px-4 py-2 rounded-lg hover:bg-primary/80 transition-all shadow-lg shadow-primary/20">
+            <Link
+              href="/register"
+              className="bg-primary text-dark text-sm font-semibold px-4 py-2 rounded-lg hover:bg-primary/80 transition-all shadow-lg shadow-primary/20"
+            >
               Register
             </Link>
-            <Link href="/admin/login" className="flex items-center gap-1.5 border border-gray-600 text-gray-300 text-sm font-medium px-3 py-2 rounded-lg hover:border-primary/60 hover:text-primary hover:bg-primary/5 transition-all">
+            <Link
+              href="/admin/login"
+              className="flex items-center gap-1.5 border border-gray-600 text-gray-300 text-sm font-medium px-3 py-2 rounded-lg hover:border-primary/60 hover:text-primary hover:bg-primary/5 transition-all"
+            >
               <RiShieldUserLine size={15} />
               Admin
             </Link>
@@ -119,7 +169,10 @@ export default function Navbar() {
         </div>
 
         {/* Mobile toggle */}
-        <button className="md:hidden text-gray-400 hover:text-white transition-colors p-1" onClick={() => setOpen(!open)}>
+        <button
+          className="md:hidden text-gray-400 hover:text-white transition-colors p-1"
+          onClick={() => setOpen(!open)}
+        >
           {open ? <RiCloseLine size={22} /> : <RiMenuLine size={22} />}
         </button>
       </div>
@@ -135,7 +188,11 @@ export default function Navbar() {
             className="md:hidden glass border-t border-border overflow-hidden"
           >
             <div className="px-4 py-4 flex flex-col gap-1">
-              <Link href="/" className="text-sm text-gray-400 hover:text-white px-3 py-2 rounded-lg hover:bg-white/5 transition-all" onClick={() => setOpen(false)}>
+              <Link
+                href="/"
+                className="text-sm text-gray-400 hover:text-white px-3 py-2 rounded-lg hover:bg-white/5 transition-all"
+                onClick={() => setOpen(false)}
+              >
                 Home
               </Link>
 
@@ -146,7 +203,10 @@ export default function Navbar() {
                   className="w-full flex items-center justify-between text-sm text-gray-400 hover:text-white px-3 py-2 rounded-lg hover:bg-white/5 transition-all"
                 >
                   Events
-                  <RiArrowDownSLine size={15} className={`transition-transform duration-200 ${mobileEventsOpen ? "rotate-180" : ""}`} />
+                  <RiArrowDownSLine
+                    size={15}
+                    className={`transition-transform duration-200 ${mobileEventsOpen ? "rotate-180" : ""}`}
+                  />
                 </button>
                 <AnimatePresence>
                   {mobileEventsOpen && (
@@ -161,7 +221,10 @@ export default function Navbar() {
                         <Link
                           key={href}
                           href={href}
-                          onClick={() => { setOpen(false); setMobileEventsOpen(false); }}
+                          onClick={() => {
+                            setOpen(false);
+                            setMobileEventsOpen(false);
+                          }}
                           className="flex items-center gap-2 text-sm text-gray-500 hover:text-primary px-3 py-2 rounded-lg hover:bg-white/5 transition-all"
                         >
                           <Icon size={13} className="text-primary/60" /> {label}
@@ -173,16 +236,29 @@ export default function Navbar() {
               </div>
 
               {links.map((l) => (
-                <Link key={l.href} href={l.href} className="text-sm text-gray-400 hover:text-white px-3 py-2 rounded-lg hover:bg-white/5 transition-all" onClick={() => setOpen(false)}>
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  className="text-sm text-gray-400 hover:text-white px-3 py-2 rounded-lg hover:bg-white/5 transition-all"
+                  onClick={() => setOpen(false)}
+                >
                   {l.label}
                 </Link>
               ))}
 
               <div className="flex gap-2 mt-2">
-                <Link href="/register" className="flex-1 bg-primary text-dark text-sm font-semibold px-4 py-2 rounded-lg text-center" onClick={() => setOpen(false)}>
+                <Link
+                  href="/register"
+                  className="flex-1 bg-primary text-dark text-sm font-semibold px-4 py-2 rounded-lg text-center"
+                  onClick={() => setOpen(false)}
+                >
                   Register
                 </Link>
-                <Link href="/admin/login" className="flex items-center gap-1.5 border border-gray-600 text-gray-300 text-sm font-medium px-3 py-2 rounded-lg hover:border-primary/60 hover:text-primary transition-all" onClick={() => setOpen(false)}>
+                <Link
+                  href="/admin/login"
+                  className="flex items-center gap-1.5 border border-gray-600 text-gray-300 text-sm font-medium px-3 py-2 rounded-lg hover:border-primary/60 hover:text-primary transition-all"
+                  onClick={() => setOpen(false)}
+                >
                   <RiShieldUserLine size={14} /> Admin
                 </Link>
               </div>

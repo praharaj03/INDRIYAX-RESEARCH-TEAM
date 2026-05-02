@@ -7,7 +7,10 @@ export async function POST(req: NextRequest) {
   const validPass = process.env.ADMIN_PASSWORD;
 
   if (!validUser || !validPass) {
-    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Server misconfigured" },
+      { status: 500 },
+    );
   }
 
   if (username !== validUser || password !== validPass) {

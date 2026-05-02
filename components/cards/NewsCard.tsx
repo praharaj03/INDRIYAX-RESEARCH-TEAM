@@ -23,9 +23,12 @@ export default function NewsCard({ item }: { item: News }) {
         <h3 className="font-semibold text-white text-sm leading-snug mb-2 group-hover:text-primary transition-colors line-clamp-2">
           {item.title}
         </h3>
-        <p className="text-xs text-gray-500 line-clamp-2 mb-3">{item.description}</p>
+        <p className="text-xs text-gray-500 line-clamp-2 mb-3">
+          {item.description}
+        </p>
         <div className="flex items-center gap-1 text-xs text-primary font-medium">
-          Read article <RiExternalLinkLine className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+          Read article{" "}
+          <RiExternalLinkLine className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
         </div>
       </div>
     </a>

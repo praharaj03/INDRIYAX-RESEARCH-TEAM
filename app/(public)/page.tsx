@@ -3,17 +3,34 @@ import { events, news } from "@/lib/data/index";
 import EventCard from "@/components/cards/EventCard";
 import NewsCard from "@/components/cards/NewsCard";
 import AnimateIn from "@/components/ui/AnimateIn";
-import { RiCalendarEventLine, RiNewspaperLine, RiArrowRightLine, RiShieldCrossLine, RiGroupLine, RiMapPin2Line } from "react-icons/ri";
+import {
+  RiCalendarEventLine,
+  RiNewspaperLine,
+  RiArrowRightLine,
+  RiShieldCrossLine,
+  RiGroupLine,
+  RiMapPin2Line,
+} from "react-icons/ri";
 
 const stats = [
-  { icon: RiCalendarEventLine, value: `${events.filter(e=>e.type==="upcoming").length}`, label: "Upcoming Events" },
+  {
+    icon: RiCalendarEventLine,
+    value: `${events.filter((e) => e.type === "upcoming").length}`,
+    label: "Upcoming Events",
+  },
   { icon: RiGroupLine, value: "1,000+", label: "Practitioners Trained" },
   { icon: RiMapPin2Line, value: "10+", label: "Cities Reached" },
-  { icon: RiShieldCrossLine, value: `${events.filter(e=>e.type==="past").length}`, label: "Past Events" },
+  {
+    icon: RiShieldCrossLine,
+    value: `${events.filter((e) => e.type === "past").length}`,
+    label: "Past Events",
+  },
 ];
 
 export default function HomePage() {
-  const upcomingEvents = events.filter((e) => e.type === "upcoming").slice(0, 3);
+  const upcomingEvents = events
+    .filter((e) => e.type === "upcoming")
+    .slice(0, 3);
   const pastEvents = events.filter((e) => e.type === "past").slice(0, 3);
   const latestNews = news.slice(0, 3);
 
@@ -46,7 +63,8 @@ export default function HomePage() {
 
           <AnimateIn delay={0.2}>
             <p className="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
-              Join seminars, workshops, and events led by India's leading optometrists. Stay ahead with curated medical news and research.
+              Join seminars, workshops, and events led by India's leading
+              optometrists. Stay ahead with curated medical news and research.
             </p>
           </AnimateIn>
 
@@ -76,7 +94,10 @@ export default function HomePage() {
         <AnimateIn>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {stats.map(({ icon: Icon, value, label }) => (
-              <div key={label} className="bg-dark-3 border border-border rounded-2xl p-6 text-center hover:border-primary/30 transition-colors">
+              <div
+                key={label}
+                className="bg-dark-3 border border-border rounded-2xl p-6 text-center hover:border-primary/30 transition-colors"
+              >
                 <Icon className="text-primary text-2xl mx-auto mb-2" />
                 <p className="text-2xl font-bold text-white">{value}</p>
                 <p className="text-xs text-gray-500 mt-1">{label}</p>
@@ -91,11 +112,17 @@ export default function HomePage() {
         <AnimateIn>
           <div className="flex items-end justify-between mb-10">
             <div>
-              <p className="text-primary text-xs font-semibold uppercase tracking-widest mb-1">Don't miss out</p>
+              <p className="text-primary text-xs font-semibold uppercase tracking-widest mb-1">
+                Don't miss out
+              </p>
               <h2 className="text-3xl font-bold text-white">Upcoming Events</h2>
             </div>
-            <Link href="/events/upcoming" className="group flex items-center gap-1 text-sm text-gray-500 hover:text-primary transition-colors">
-              View all <RiArrowRightLine className="group-hover:translate-x-1 transition-transform" />
+            <Link
+              href="/events/upcoming"
+              className="group flex items-center gap-1 text-sm text-gray-500 hover:text-primary transition-colors"
+            >
+              View all{" "}
+              <RiArrowRightLine className="group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
         </AnimateIn>
@@ -118,11 +145,17 @@ export default function HomePage() {
         <AnimateIn>
           <div className="flex items-end justify-between mb-10">
             <div>
-              <p className="text-gray-500 text-xs font-semibold uppercase tracking-widest mb-1">Archive</p>
+              <p className="text-gray-500 text-xs font-semibold uppercase tracking-widest mb-1">
+                Archive
+              </p>
               <h2 className="text-3xl font-bold text-white">Past Events</h2>
             </div>
-            <Link href="/events/past" className="group flex items-center gap-1 text-sm text-gray-500 hover:text-primary transition-colors">
-              View all <RiArrowRightLine className="group-hover:translate-x-1 transition-transform" />
+            <Link
+              href="/events/past"
+              className="group flex items-center gap-1 text-sm text-gray-500 hover:text-primary transition-colors"
+            >
+              View all{" "}
+              <RiArrowRightLine className="group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
         </AnimateIn>
@@ -145,11 +178,17 @@ export default function HomePage() {
         <AnimateIn>
           <div className="flex items-end justify-between mb-10">
             <div>
-              <p className="text-primary text-xs font-semibold uppercase tracking-widest mb-1">Stay informed</p>
+              <p className="text-primary text-xs font-semibold uppercase tracking-widest mb-1">
+                Stay informed
+              </p>
               <h2 className="text-3xl font-bold text-white">Medical News</h2>
             </div>
-            <Link href="/news" className="group flex items-center gap-1 text-sm text-gray-500 hover:text-primary transition-colors">
-              View all <RiArrowRightLine className="group-hover:translate-x-1 transition-transform" />
+            <Link
+              href="/news"
+              className="group flex items-center gap-1 text-sm text-gray-500 hover:text-primary transition-colors"
+            >
+              View all{" "}
+              <RiArrowRightLine className="group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
         </AnimateIn>
@@ -169,8 +208,13 @@ export default function HomePage() {
             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 pointer-events-none" />
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
             <RiNewspaperLine className="text-primary text-4xl mx-auto mb-4 animate-float" />
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">Ready to Level Up?</h2>
-            <p className="text-gray-400 mb-8 max-w-md mx-auto">Register for our upcoming events and grow your optometry practice with India's best educators.</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">
+              Ready to Level Up?
+            </h2>
+            <p className="text-gray-400 mb-8 max-w-md mx-auto">
+              Register for our upcoming events and grow your optometry practice
+              with India's best educators.
+            </p>
             <Link
               href="/register"
               className="group inline-flex items-center gap-2 bg-primary text-dark font-semibold px-8 py-3.5 rounded-xl hover:bg-primary/80 transition-all shadow-lg shadow-primary/25"

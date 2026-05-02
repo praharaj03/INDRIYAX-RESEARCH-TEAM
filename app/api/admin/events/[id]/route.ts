@@ -5,11 +5,20 @@ import { NextResponse } from "next/server";
 // import { EventModel } from "@/lib/models/Event";
 
 export async function GET() {
-  return NextResponse.json({ message: "TODO: connect MongoDB" }, { status: 501 });
+  return NextResponse.json(
+    { message: "TODO: connect MongoDB" },
+    { status: 501 },
+  );
 }
 export async function PATCH() {
-  return NextResponse.json({ message: "TODO: connect MongoDB" }, { status: 501 });
+  return NextResponse.json(
+    { message: "TODO: connect MongoDB" },
+    { status: 501 },
+  );
 }
 export async function DELETE() {
-  return NextResponse.json({ message: "TODO: connect MongoDB" }, { status: 501 });
+  return NextResponse.json(
+    { message: "TODO: connect MongoDB" },
+    { status: 501 },
+  );
 }

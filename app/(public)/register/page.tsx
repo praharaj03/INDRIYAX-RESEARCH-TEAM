@@ -1,5 +1,10 @@
 import AnimateIn from "@/components/ui/AnimateIn";
-import { RiUserLine, RiMailLine, RiLockPasswordLine, RiGoogleLine } from "react-icons/ri";
+import {
+  RiUserLine,
+  RiMailLine,
+  RiLockPasswordLine,
+  RiGoogleLine,
+} from "react-icons/ri";
 
 // TODO (Backend Dev): Replace this UI with <SignUp /> from @clerk/nextjs
 // Clerk keys needed in .env.local:
@@ -18,7 +23,9 @@ export default function RegisterPage() {
             Create Account
           </div>
           <h1 className="text-3xl font-bold text-white">Join IndriyaX</h1>
-          <p className="text-gray-500 text-sm mt-1">Register to access events and track your learning</p>
+          <p className="text-gray-500 text-sm mt-1">
+            Register to access events and track your learning
+          </p>
         </div>
 
         <div className="bg-dark-3 border border-border rounded-2xl p-7 shadow-2xl shadow-black/40">
@@ -35,32 +42,63 @@ export default function RegisterPage() {
 
           <div className="flex flex-col gap-4">
             <div>
-              <label className="text-xs text-gray-500 font-medium mb-1.5 block">Full Name</label>
+              <label className="text-xs text-gray-500 font-medium mb-1.5 block">
+                Full Name
+              </label>
               <div className="relative">
-                <RiUserLine className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" size={15} />
-                <input disabled placeholder="Dr. Your Name" className="w-full bg-dark-4 border border-border text-gray-500 text-sm rounded-xl pl-9 pr-4 py-3 cursor-not-allowed placeholder:text-gray-700" />
+                <RiUserLine
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600"
+                  size={15}
+                />
+                <input
+                  disabled
+                  placeholder="Dr. Your Name"
+                  className="w-full bg-dark-4 border border-border text-gray-500 text-sm rounded-xl pl-9 pr-4 py-3 cursor-not-allowed placeholder:text-gray-700"
+                />
               </div>
             </div>
             <div>
-              <label className="text-xs text-gray-500 font-medium mb-1.5 block">Email</label>
+              <label className="text-xs text-gray-500 font-medium mb-1.5 block">
+                Email
+              </label>
               <div className="relative">
-                <RiMailLine className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" size={15} />
-                <input disabled placeholder="you@example.com" className="w-full bg-dark-4 border border-border text-gray-500 text-sm rounded-xl pl-9 pr-4 py-3 cursor-not-allowed placeholder:text-gray-700" />
+                <RiMailLine
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600"
+                  size={15}
+                />
+                <input
+                  disabled
+                  placeholder="you@example.com"
+                  className="w-full bg-dark-4 border border-border text-gray-500 text-sm rounded-xl pl-9 pr-4 py-3 cursor-not-allowed placeholder:text-gray-700"
+                />
               </div>
             </div>
             <div>
-              <label className="text-xs text-gray-500 font-medium mb-1.5 block">Password</label>
+              <label className="text-xs text-gray-500 font-medium mb-1.5 block">
+                Password
+              </label>
               <div className="relative">
-                <RiLockPasswordLine className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" size={15} />
-                <input disabled placeholder="••••••••" className="w-full bg-dark-4 border border-border text-gray-500 text-sm rounded-xl pl-9 pr-4 py-3 cursor-not-allowed placeholder:text-gray-700" />
+                <RiLockPasswordLine
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600"
+                  size={15}
+                />
+                <input
+                  disabled
+                  placeholder="••••••••"
+                  className="w-full bg-dark-4 border border-border text-gray-500 text-sm rounded-xl pl-9 pr-4 py-3 cursor-not-allowed placeholder:text-gray-700"
+                />
               </div>
             </div>
 
             <div className="bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs px-3 py-2.5 rounded-xl">
-              🔧 Auth integration pending — backend developer will connect Clerk here
+              🔧 Auth integration pending — backend developer will connect Clerk
+              here
             </div>
 
-            <button disabled className="w-full bg-primary/50 text-dark font-semibold py-3 rounded-xl cursor-not-allowed text-sm">
+            <button
+              disabled
+              className="w-full bg-primary/50 text-dark font-semibold py-3 rounded-xl cursor-not-allowed text-sm"
+            >
               Create Account
             </button>
           </div>

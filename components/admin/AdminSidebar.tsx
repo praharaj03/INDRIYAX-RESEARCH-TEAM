@@ -3,8 +3,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  RiDashboardLine, RiCalendarEventLine, RiAddCircleLine,
-  RiBarChartLine, RiLogoutBoxLine, RiEyeLine,
+  RiDashboardLine,
+  RiCalendarEventLine,
+  RiAddCircleLine,
+  RiBarChartLine,
+  RiLogoutBoxLine,
+  RiEyeLine,
 } from "react-icons/ri";
 
 const navItems = [
@@ -28,10 +32,18 @@ export default function AdminSidebar() {
       {/* Logo */}
       <div className="px-5 py-5 border-b border-border flex items-center gap-3">
         <div className="w-8 h-8 rounded-lg overflow-hidden border border-primary/20 shrink-0">
-          <Image src="/logo.jpeg" alt="IndriyaX" width={32} height={32} className="object-cover w-full h-full" />
+          <Image
+            src="/logo.jpeg"
+            alt="IndriyaX"
+            width={32}
+            height={32}
+            className="object-cover w-full h-full"
+          />
         </div>
         <div>
-          <p className="text-white font-bold text-sm leading-none">Indriya<span className="text-primary">X</span></p>
+          <p className="text-white font-bold text-sm leading-none">
+            Indriya<span className="text-primary">X</span>
+          </p>
           <p className="text-gray-600 text-xs mt-0.5">Admin Panel</p>
         </div>
       </div>
@@ -39,7 +51,9 @@ export default function AdminSidebar() {
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 flex flex-col gap-1">
         {navItems.map(({ href, icon: Icon, label }) => {
-          const active = pathname === href || (href !== "/admin/dashboard" && pathname.startsWith(href));
+          const active =
+            pathname === href ||
+            (href !== "/admin/dashboard" && pathname.startsWith(href));
           return (
             <Link
               key={href}

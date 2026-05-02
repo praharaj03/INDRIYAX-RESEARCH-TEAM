@@ -1,5 +1,10 @@
 import AnimateIn from "@/components/ui/AnimateIn";
-import { RiEyeLine, RiFocusLine, RiBarChartLine, RiShakeHandsLine } from "react-icons/ri";
+import {
+  RiEyeLine,
+  RiFocusLine,
+  RiBarChartLine,
+  RiShakeHandsLine,
+} from "react-icons/ri";
 
 const cards = [
   {
@@ -33,7 +38,9 @@ export default function AboutPage() {
             <RiEyeLine /> About Us
           </div>
           <h1 className="text-4xl font-bold text-white">About IndriyaX</h1>
-          <p className="text-gray-500 mt-2">Our mission and the team behind it</p>
+          <p className="text-gray-500 mt-2">
+            Our mission and the team behind it
+          </p>
         </div>
       </AnimateIn>
 
@@ -44,11 +51,17 @@ export default function AboutPage() {
             Dr
           </div>
           <div>
-            <h2 className="text-xl font-bold text-white mb-1">Dr. [Founder Name]</h2>
-            <p className="text-primary text-sm font-medium mb-3">Founder & Lead Optometrist</p>
+            <h2 className="text-xl font-bold text-white mb-1">
+              Dr. [Founder Name]
+            </h2>
+            <p className="text-primary text-sm font-medium mb-3">
+              Founder & Lead Optometrist
+            </p>
             <p className="text-gray-500 text-sm leading-relaxed">
-              With over 15 years of clinical experience, Dr. [Name] founded IndriyaX to bridge the gap between optometry education and practice.
-              A passionate advocate for preventive eye care, they have trained hundreds of practitioners across India.
+              With over 15 years of clinical experience, Dr. [Name] founded
+              IndriyaX to bridge the gap between optometry education and
+              practice. A passionate advocate for preventive eye care, they have
+              trained hundreds of practitioners across India.
             </p>
           </div>
         </div>

@@ -10,7 +10,14 @@ export const metadata: Metadata = {
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,
-  keywords: ["optometry", "eye care", "optometry events", "medical education", "India", "IndriyaX"],
+  keywords: [
+    "optometry",
+    "eye care",
+    "optometry events",
+    "medical education",
+    "India",
+    "IndriyaX",
+  ],
   authors: [{ name: siteConfig.name }],
   creator: siteConfig.name,
   metadataBase: new URL(siteConfig.url),
@@ -19,7 +26,14 @@ export const metadata: Metadata = {
     description: siteConfig.description,
     url: siteConfig.url,
     siteName: siteConfig.name,
-    images: [{ url: "/logo.jpeg", width: 800, height: 800, alt: `${siteConfig.name} Logo` }],
+    images: [
+      {
+        url: "/logo.jpeg",
+        width: 800,
+        height: 800,
+        alt: `${siteConfig.name} Logo`,
+      },
+    ],
     locale: "en_IN",
     type: "website",
   },
@@ -36,7 +50,11 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en">
       <body>

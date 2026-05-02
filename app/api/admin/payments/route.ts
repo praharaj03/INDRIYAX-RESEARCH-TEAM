@@ -5,5 +5,8 @@ import { NextResponse } from "next/server";
 // import { PaymentModel } from "@/lib/models/Payment";
 
 export async function GET() {
-  return NextResponse.json({ message: "TODO: connect MongoDB" }, { status: 501 });
+  return NextResponse.json(
+    { message: "TODO: connect MongoDB" },
+    { status: 501 },
+  );
 }

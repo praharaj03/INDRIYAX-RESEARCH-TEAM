@@ -1,6 +1,11 @@
 import Link from "next/link";
 import Image from "next/image";
-import { RiCalendarLine, RiMapPinLine, RiMicLine, RiArrowRightLine } from "react-icons/ri";
+import {
+  RiCalendarLine,
+  RiMapPinLine,
+  RiMicLine,
+  RiArrowRightLine,
+} from "react-icons/ri";
 import type { Event } from "@/types/event";
 
 export default function EventCard({ event }: { event: Event }) {
@@ -17,11 +22,13 @@ export default function EventCard({ event }: { event: Event }) {
           className="object-cover group-hover:scale-105 transition-transform duration-500"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-dark-3/80 to-transparent" />
-        <span className={`absolute top-3 left-3 text-xs font-semibold px-2.5 py-1 rounded-full border ${
-          event.type === "upcoming"
-            ? "bg-primary/10 text-primary border-primary/30"
-            : "bg-white/5 text-gray-300 border-white/10"
-        }`}>
+        <span
+          className={`absolute top-3 left-3 text-xs font-semibold px-2.5 py-1 rounded-full border ${
+            event.type === "upcoming"
+              ? "bg-primary/10 text-primary border-primary/30"
+              : "bg-white/5 text-gray-300 border-white/10"
+          }`}
+        >
           {event.type === "upcoming" ? "Upcoming" : "Past"}
         </span>
       </div>
@@ -45,7 +52,8 @@ export default function EventCard({ event }: { event: Event }) {
           </p>
         </div>
         <div className="flex items-center gap-1 text-xs text-primary font-medium">
-          View details <RiArrowRightLine className="group-hover:translate-x-1 transition-transform" />
+          View details{" "}
+          <RiArrowRightLine className="group-hover:translate-x-1 transition-transform" />
         </div>
       </div>
     </Link>

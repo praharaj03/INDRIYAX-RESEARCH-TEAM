@@ -6,5 +6,7 @@ import { NextResponse } from "next/server";
 // export const { GET, POST } = NextAuth(authOptions);
 
 export async function GET() {
-  return NextResponse.json({ message: "Auth API — integrate NextAuth or custom JWT here" });
+  return NextResponse.json({
+    message: "Auth API — integrate NextAuth or custom JWT here",
+  });
 }

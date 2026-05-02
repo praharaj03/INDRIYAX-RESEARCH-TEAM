@@ -16,9 +16,14 @@ export default function PastEventsPage() {
               <RiHistoryLine /> Archive
             </div>
             <h1 className="text-4xl font-bold text-white">Past Events</h1>
-            <p className="text-gray-500 mt-2">{past.length} events — recordings and summaries available</p>
+            <p className="text-gray-500 mt-2">
+              {past.length} events — recordings and summaries available
+            </p>
           </div>
-          <Link href="/events" className="hidden md:flex items-center gap-1 text-sm text-gray-500 hover:text-primary transition-colors mt-2">
+          <Link
+            href="/events"
+            className="hidden md:flex items-center gap-1 text-sm text-gray-500 hover:text-primary transition-colors mt-2"
+          >
             View all events <RiArrowRightLine />
           </Link>
         </div>

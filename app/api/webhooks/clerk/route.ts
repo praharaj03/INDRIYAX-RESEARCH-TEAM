@@ -12,5 +12,8 @@ import { NextResponse } from "next/server";
 // import { UserModel } from "@/lib/models/User";
 
 export async function POST() {
-  return NextResponse.json({ message: "TODO: implement Clerk webhook handler" }, { status: 501 });
+  return NextResponse.json(
+    { message: "TODO: implement Clerk webhook handler" },
+    { status: 501 },
+  );
 }
