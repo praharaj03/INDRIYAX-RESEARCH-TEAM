@@ -15,9 +15,6 @@ export const siteConfig = {
   },
   navLinks: [
     { href: "/", label: "Home" },
-    { href: "/events", label: "Events" },
-    { href: "/events/upcoming", label: "Upcoming" },
-    { href: "/events/past", label: "Past" },
     { href: "/news", label: "News" },
     { href: "/about", label: "About" },
     { href: "/contact", label: "Contact" },
