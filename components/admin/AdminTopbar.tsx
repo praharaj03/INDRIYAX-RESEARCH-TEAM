@@ -1,24 +1,33 @@
 "use client";
 import { usePathname } from "next/navigation";
-import { RiShieldUserLine } from "react-icons/ri";
+import { RiCalendarLine } from "react-icons/ri";
 
-const titles: Record<string, string> = {
-  "/admin/dashboard": "Dashboard",
-  "/admin/events": "Events Manager",
-  "/admin/events/add": "Add New Event",
-  "/admin/analytics": "Analytics",
+const titles: Record<string, { title: string; sub: string }> = {
+  "/admin/dashboard": { title: "Dashboard", sub: "Overview" },
+  "/admin/events": { title: "Events", sub: "Manage all events" },
+  "/admin/events/add": { title: "Add Event", sub: "Create a new event" },
+  "/admin/analytics": { title: "Analytics", sub: "Site performance" },
 };
 
 export default function AdminTopbar() {
   const pathname = usePathname();
-  const title = titles[pathname] ?? "Admin";
+  const page = titles[pathname] ?? { title: "Admin", sub: "IndriyaX" };
+
+  const today = new Date().toLocaleDateString("en-IN", {
+    weekday: "short", day: "numeric", month: "short", year: "numeric",
+  });
 
   return (
-    <header className="h-14 border-b border-border bg-dark-2/50 backdrop-blur px-6 flex items-center justify-between shrink-0">
-      <h1 className="text-white font-semibold text-base">{title}</h1>
-      <div className="flex items-center gap-2 bg-primary/10 border border-primary/20 text-primary text-xs font-semibold px-3 py-1.5 rounded-full">
-        <RiShieldUserLine size={13} />
-        Administrator
+    <header className="h-14 shrink-0 border-b border-border bg-dark-2 px-6 flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <span className="text-gray-600 text-xs font-medium">IndriyaX</span>
+        <span className="text-gray-700">/</span>
+        <span className="text-white text-sm font-semibold">{page.title}</span>
+      </div>
+
+      <div className="flex items-center gap-1.5 text-gray-500 text-xs">
+        <RiCalendarLine size={13} />
+        {today}
       </div>
     </header>
   );
