@@ -7,7 +7,14 @@ export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if (!pathname.startsWith(ADMIN_PREFIX)) return NextResponse.next();
-  if (pathname === LOGIN_PATH) return NextResponse.next();
+  // Already logged in → skip login page
+  if (pathname === LOGIN_PATH) {
+    const session = req.cookies.get("admin_session")?.value;
+    if (session === "authenticated") {
+      return NextResponse.redirect(new URL("/admin/dashboard", req.url));
+    }
+    return NextResponse.next();
+  }
 
   const session = req.cookies.get("admin_session")?.value;
 
