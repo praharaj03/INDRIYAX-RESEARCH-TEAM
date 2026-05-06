@@ -6,6 +6,7 @@ import {
 import AnalyticsBreakdown from "@/components/admin/analytics/AnalyticsBreakdown";
 import AnalyticsSpeakers from "@/components/admin/analytics/AnalyticsSpeakers";
 import AnalyticsPerformance from "@/components/admin/analytics/AnalyticsPerformance";
+import AnalyticsSubscriptions from "@/components/admin/analytics/AnalyticsSubscriptions";
 
 const upcoming = events.filter((e) => e.type === "upcoming");
 const past = events.filter((e) => e.type === "past");
@@ -45,6 +46,7 @@ export default function AnalyticsPage() {
         <AnalyticsSpeakers />
       </div>
 
+      <AnalyticsSubscriptions />
       <AnalyticsPerformance />
     </div>
   );

@@ -14,6 +14,7 @@ export const siteConfig = {
     linkedin: "https://linkedin.com/company/indriyax",
   },
   navLinks: [
+    { href: "/subscribe", label: "Pricing" },
     { href: "/news", label: "News" },
     { href: "/about", label: "About" },
     { href: "/contact", label: "Contact" },

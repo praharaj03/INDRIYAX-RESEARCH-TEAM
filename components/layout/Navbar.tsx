@@ -153,10 +153,16 @@ export default function Navbar() {
 
           <div className="flex items-center gap-2 ml-2">
             <Link
-              href="/register"
+              href="/login"
+              className="border border-border text-gray-300 text-sm font-medium px-4 py-2 rounded-lg hover:border-white/30 hover:text-white transition-all"
+            >
+              Sign In
+            </Link>
+            <Link
+              href="/signup"
               className="bg-primary text-dark text-sm font-semibold px-4 py-2 rounded-lg hover:bg-primary/80 transition-all shadow-lg shadow-primary/20"
             >
-              Register
+              Sign Up
             </Link>
             <Link
               href="/admin/login"
@@ -248,11 +254,18 @@ export default function Navbar() {
 
               <div className="flex gap-2 mt-2">
                 <Link
-                  href="/register"
+                  href="/login"
+                  className="flex-1 border border-border text-gray-300 text-sm font-medium px-4 py-2 rounded-lg text-center hover:border-white/30 hover:text-white transition-all"
+                  onClick={() => setOpen(false)}
+                >
+                  Sign In
+                </Link>
+                <Link
+                  href="/signup"
                   className="flex-1 bg-primary text-dark text-sm font-semibold px-4 py-2 rounded-lg text-center"
                   onClick={() => setOpen(false)}
                 >
-                  Register
+                  Sign Up
                 </Link>
                 <Link
                   href="/admin/login"
