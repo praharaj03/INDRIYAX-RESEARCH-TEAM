@@ -1,8 +1,12 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
+import Image from "next/image";
 import { events } from "@/lib/data/index";
-import { RiSaveLine, RiArrowLeftLine, RiCheckLine, RiDeleteBinLine } from "react-icons/ri";
+import {
+  RiSaveLine, RiArrowLeftLine, RiCheckLine, RiDeleteBinLine,
+  RiLinkM, RiUploadCloud2Line, RiImageLine, RiCloseLine,
+} from "react-icons/ri";
 
 const inputClass =
   "w-full bg-dark-4 border border-border text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-gray-700";
@@ -11,9 +15,13 @@ const labelClass = "text-xs text-gray-500 font-medium mb-1.5 block";
 export default function EditEventPage() {
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
+  const fileRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [thumbMode, setThumbMode] = useState<"url" | "upload">("url");
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
   const [form, setForm] = useState({
     title: "", type: "upcoming", date: "", venue: "",
     speaker: "", description: "", thumbnail: "",
@@ -58,6 +66,26 @@ export default function EditEventPage() {
   async function handleDelete() {
     // TODO (Backend Dev): DELETE /api/admin/events/:id
     router.push("/admin/events");
+  }
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setUploadError("");
+    const fd = new FormData();
+    fd.append("file", file);
+    try {
+      const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Upload failed");
+      set("thumbnail", data.url);
+    } catch (err: unknown) {
+      setUploadError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
   }
 
   return (
@@ -108,8 +136,56 @@ export default function EditEventPage() {
 
         {/* Thumbnail */}
         <div>
-          <label className={labelClass}>Thumbnail URL *</label>
-          <input required type="url" className={inputClass} value={form.thumbnail} onChange={(e) => set("thumbnail", e.target.value)} />
+          <label className={labelClass}>Thumbnail *</label>
+
+          <div className="flex gap-1 p-1 bg-dark-4 border border-border rounded-xl mb-3 w-fit">
+            <button type="button" onClick={() => { setThumbMode("url"); }}
+              className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-all ${
+                thumbMode === "url" ? "bg-dark-3 text-white shadow-sm" : "text-gray-500 hover:text-gray-300"
+              }`}>
+              <RiLinkM size={13} /> URL
+            </button>
+            <button type="button" onClick={() => { setThumbMode("upload"); }}
+              className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-all ${
+                thumbMode === "upload" ? "bg-dark-3 text-white shadow-sm" : "text-gray-500 hover:text-gray-300"
+              }`}>
+              <RiUploadCloud2Line size={13} /> Upload
+            </button>
+          </div>
+
+          {thumbMode === "url" ? (
+            <input type="url" className={inputClass} value={form.thumbnail} onChange={(e) => set("thumbnail", e.target.value)} />
+          ) : (
+            <div>
+              <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={handleFileChange} />
+              {!form.thumbnail && (
+                <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
+                  className="w-full border-2 border-dashed border-border hover:border-primary/40 rounded-xl p-8 flex flex-col items-center gap-2 text-gray-500 hover:text-gray-300 transition-all disabled:opacity-60">
+                  {uploading ? (
+                    <><RiUploadCloud2Line size={24} className="animate-pulse text-primary" /><span className="text-sm">Uploading...</span></>
+                  ) : (
+                    <><RiImageLine size={24} /><span className="text-sm font-medium">Click to choose image</span><span className="text-xs text-gray-600">JPG, PNG, WebP — max 5MB</span></>
+                  )}
+                </button>
+              )}
+              {uploadError && <p className="text-red-400 text-xs mt-1.5">{uploadError}</p>}
+            </div>
+          )}
+
+          {form.thumbnail && (
+            <div className="mt-3 relative rounded-xl overflow-hidden border border-border">
+              <div className="relative h-40 w-full">
+                <Image src={form.thumbnail} alt="Thumbnail preview" fill className="object-cover" onError={() => set("thumbnail", "")} />
+              </div>
+              <button type="button" onClick={() => set("thumbnail", "")}
+                className="absolute top-2 right-2 w-7 h-7 rounded-lg bg-dark/80 border border-border text-gray-400 hover:text-white flex items-center justify-center transition-colors">
+                <RiCloseLine size={14} />
+              </button>
+              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-dark/80 to-transparent px-3 py-2">
+                <p className="text-white text-xs font-medium truncate">{form.thumbnail}</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Description */}

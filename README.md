@@ -85,9 +85,11 @@ INDRIYAX/
 │   │       ├── news/route.ts
 │   │       ├── news/[id]/route.ts
 │   │       ├── payments/route.ts       # GET all payments
+│   │       ├── payments/pricing/route.ts    # GET/PATCH plan prices (persisted to data/pricing.json)
 │   │       ├── payments/discounts/route.ts  # Discount code CRUD
 │   │       ├── registrations/route.ts
-│   │       └── subscriptions/route.ts  # GET/POST subscriptions
+│   │       ├── subscriptions/route.ts  # GET/POST subscriptions
+│   │       └── upload/route.ts         # POST image upload → saves to public/uploads/
 │
 ├── components/
 │   ├── admin/
@@ -129,8 +131,14 @@ INDRIYAX/
 │       ├── AnimateIn.tsx
 │       └── SectionHeader.tsx
 │
+├── data/
+│   └── pricing.json                    # Persisted plan prices (pro_monthly, elite_annual)
+│
+├── public/
+│   └── uploads/                        # Admin-uploaded event thumbnails
+│
 ├── config/
-│   ├── site.ts                         # Nav links, contact info, social URLs
+│   ├── site.ts                         # Nav links, contact info, social URLs (WhatsApp, Telegram, LinkedIn, Instagram, X)
 │   ├── auth.ts                         # Auth config stub
 │   └── db.ts                           # DB client stub (Mongoose / Prisma)
 │
@@ -178,8 +186,8 @@ INDRIYAX/
 | `/events/[slug]` | Event detail — thumbnail, speaker, date, venue, description, summary, recording or register CTA |
 | `/news` | Medical news grid |
 | `/subscribe` | 3-tier pricing page — Free, Pro (₹199/mo), Elite (₹1,499/yr) with feature comparison and FAQ |
-| `/about` | About IndriyaX — founder, mission, vision, stats, partnerships |
-| `/contact` | Contact cards + embedded Google Map |
+| `/about` | About IndriyaX — Anik Dingal founder profile (initials avatar, bio, credentials, stats), mission, vision, partnerships |
+| `/contact` | Contact info cards + social media icons (WhatsApp, Telegram, LinkedIn, Instagram, X) with slide-up label on hover |
 | `/register` | Embedded Google Form for event registration |
 
 ### Auth Pages
@@ -198,8 +206,8 @@ All admin routes are protected by `proxy.ts` — redirects to `/admin/login` if 
 | `/admin/login` | Admin login — sets `admin_session` cookie (8h) |
 | `/admin/dashboard` | Stats, recent events, next event widget, quick actions |
 | `/admin/events` | Events grid — edit, delete, restrict, hide/show |
-| `/admin/events/add` | Add new event |
-| `/admin/events/[id]/edit` | Edit event + access control toggles |
+| `/admin/events/add` | Add new event — thumbnail via URL **or** local file upload (max 5MB, saved to `public/uploads/`) |
+| `/admin/events/[id]/edit` | Edit event + access control toggles + same thumbnail picker |
 | `/admin/payments` | **Payments & subscriptions dashboard** — KPIs, revenue chart, plan distribution, transactions, subscriber roster, pricing controls, discount codes |
 | `/admin/analytics` | Content analytics — event breakdown, speakers, subscription stats, web performance |
 
@@ -376,6 +384,24 @@ PaymentModel.find().sort({ createdAt: -1 }).limit(20).populate("userId", "name e
 
 **6. Subscriber Roster (`GET /api/admin/subscriptions`)**
 Already stubbed. Return paginated subscriptions with user info populated.
+
+---
+
+## Pricing Controls
+
+Plan prices are stored in `data/pricing.json` and served via `GET /api/admin/payments/pricing`.
+Admin can update them from `/admin/payments` → Pricing Controls panel → Save.
+The `/subscribe` page fetches live prices from this endpoint (revalidates every 60s).
+
+---
+
+## Thumbnail Upload
+
+Admin can upload event thumbnails from their local system on the Add/Edit Event pages.
+- `POST /api/admin/upload` accepts `multipart/form-data` with a `file` field
+- Allowed: JPG, PNG, WebP, GIF — max 5MB
+- Saved to `public/uploads/<timestamp>-<random>.<ext>`
+- Returns `{ url: "/uploads/filename.jpg" }` which is stored as the event thumbnail
 
 ---
 

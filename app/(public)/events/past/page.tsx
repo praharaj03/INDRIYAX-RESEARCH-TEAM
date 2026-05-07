@@ -8,15 +8,15 @@ export default function PastEventsPage() {
   const past = events.filter((e) => e.type === "past");
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-16">
+    <div className="max-w-6xl mx-auto px-4 py-10 md:py-16">
       <AnimateIn>
-        <div className="flex items-start justify-between mb-10">
+        <div className="flex items-start justify-between mb-8 md:mb-10">
           <div>
-            <div className="inline-flex items-center gap-2 bg-white/5 border border-border text-gray-400 text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
+            <div className="inline-flex items-center gap-2 bg-white/5 border border-border text-gray-400 text-xs font-semibold px-3 py-1.5 rounded-full mb-3 md:mb-4">
               <RiHistoryLine /> Archive
             </div>
-            <h1 className="text-4xl font-bold text-white">Past Events</h1>
-            <p className="text-gray-500 mt-2">
+            <h1 className="text-3xl md:text-4xl font-bold text-white">Past Events</h1>
+            <p className="text-gray-500 mt-1.5 text-sm">
               {past.length} events — recordings and summaries available
             </p>
           </div>

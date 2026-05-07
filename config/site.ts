@@ -9,6 +9,8 @@ export const siteConfig = {
   address: "123, Vision Street, Andheri West\nMumbai, Maharashtra – 400053",
   clinicHours: "Mon – Sat: 9:00 AM – 7:00 PM\nSunday: Closed",
   social: {
+    whatsapp: "https://wa.me/919876543210",
+    telegram: "https://t.me/indriyax",
     twitter: "https://twitter.com/indriyax",
     instagram: "https://instagram.com/indriyax",
     linkedin: "https://linkedin.com/company/indriyax",

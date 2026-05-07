@@ -10,6 +10,7 @@ import {
   RiMoneyDollarCircleLine,
   RiLogoutBoxLine,
   RiExternalLinkLine,
+  RiCloseLine,
 } from "react-icons/ri";
 
 const nav = [
@@ -20,7 +21,7 @@ const nav = [
   { href: "/admin/analytics", icon: RiBarChartLine,            label: "Analytics" },
 ];
 
-export default function AdminSidebar() {
+export default function AdminSidebar({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -36,10 +37,13 @@ export default function AdminSidebar() {
         <div className="w-7 h-7 rounded-lg overflow-hidden shrink-0">
           <Image src="/logo.jpeg" alt="IndriyaX" width={28} height={28} className="object-cover w-full h-full" />
         </div>
-        <span className="text-white font-semibold text-sm tracking-tight">
-          Indriya<span className="text-primary">X</span>
-        </span>
         <span className="ml-auto text-[10px] text-gray-600 font-medium bg-white/5 px-1.5 py-0.5 rounded-md">Admin</span>
+        {/* Close button — mobile only */}
+        {onClose && (
+          <button onClick={onClose} className="md:hidden text-gray-500 hover:text-white transition-colors ml-1">
+            <RiCloseLine size={18} />
+          </button>
+        )}
       </div>
 
       {/* Nav */}
@@ -52,6 +56,7 @@ export default function AdminSidebar() {
             <Link
               key={href}
               href={href}
+              onClick={onClose}
               className={`group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${
                 active
                   ? "bg-primary/10 text-primary font-medium"

@@ -1,15 +1,24 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { RiSaveLine, RiArrowLeftLine, RiCheckLine } from "react-icons/ri";
+import Image from "next/image";
+import {
+  RiSaveLine, RiArrowLeftLine, RiCheckLine,
+  RiLinkM, RiUploadCloud2Line, RiImageLine, RiCloseLine,
+} from "react-icons/ri";
 
 const inputClass = "w-full bg-dark-4 border border-border text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-gray-700";
 const labelClass = "text-xs text-gray-500 font-medium mb-1.5 block";
 
 export default function AddEventPage() {
   const router = useRouter();
+  const fileRef = useRef<HTMLInputElement>(null);
+
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [thumbMode, setThumbMode] = useState<"url" | "upload">("url");
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
   const [form, setForm] = useState({
     title: "", type: "upcoming", date: "", venue: "",
     speaker: "", description: "", thumbnail: "",
@@ -20,19 +29,40 @@ export default function AddEventPage() {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    setUploadError("");
+
+    const fd = new FormData();
+    fd.append("file", file);
+
+    try {
+      const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Upload failed");
+      set("thumbnail", data.url);
+    } catch (err: unknown) {
+      setUploadError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploading(false);
+      // reset input so same file can be re-selected
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-
     const slug = form.title.toLowerCase().replace(/\s+/g, "-").replace(/[^\w-]/g, "") + "-" + form.date.slice(0, 4);
     const payload = { ...form, id: Date.now().toString(), slug };
-
     const res = await fetch("/api/admin/events", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-
     setLoading(false);
     if (res.ok) {
       setSuccess(true);
@@ -53,6 +83,7 @@ export default function AddEventPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="bg-dark-3 border border-border rounded-2xl p-6 flex flex-col gap-5">
+
         {/* Title */}
         <div>
           <label className={labelClass}>Event Title *</label>
@@ -88,8 +119,99 @@ export default function AddEventPage() {
 
         {/* Thumbnail */}
         <div>
-          <label className={labelClass}>Thumbnail URL *</label>
-          <input required type="url" className={inputClass} placeholder="https://..." value={form.thumbnail} onChange={(e) => set("thumbnail", e.target.value)} />
+          <label className={labelClass}>Thumbnail *</label>
+
+          {/* Mode toggle */}
+          <div className="flex gap-1 p-1 bg-dark-4 border border-border rounded-xl mb-3 w-fit">
+            <button
+              type="button"
+              onClick={() => { setThumbMode("url"); set("thumbnail", ""); }}
+              className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-all ${
+                thumbMode === "url" ? "bg-dark-3 text-white shadow-sm" : "text-gray-500 hover:text-gray-300"
+              }`}
+            >
+              <RiLinkM size={13} /> URL
+            </button>
+            <button
+              type="button"
+              onClick={() => { setThumbMode("upload"); set("thumbnail", ""); }}
+              className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-all ${
+                thumbMode === "upload" ? "bg-dark-3 text-white shadow-sm" : "text-gray-500 hover:text-gray-300"
+              }`}
+            >
+              <RiUploadCloud2Line size={13} /> Upload
+            </button>
+          </div>
+
+          {thumbMode === "url" ? (
+            <input
+              type="url"
+              className={inputClass}
+              placeholder="https://images.unsplash.com/..."
+              value={form.thumbnail}
+              onChange={(e) => set("thumbnail", e.target.value)}
+            />
+          ) : (
+            <div>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+              {/* Drop zone */}
+              {!form.thumbnail ? (
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={uploading}
+                  className="w-full border-2 border-dashed border-border hover:border-primary/40 rounded-xl p-8 flex flex-col items-center gap-2 text-gray-500 hover:text-gray-300 transition-all disabled:opacity-60"
+                >
+                  {uploading ? (
+                    <>
+                      <RiUploadCloud2Line size={24} className="animate-pulse text-primary" />
+                      <span className="text-sm">Uploading...</span>
+                    </>
+                  ) : (
+                    <>
+                      <RiImageLine size={24} />
+                      <span className="text-sm font-medium">Click to choose image</span>
+                      <span className="text-xs text-gray-600">JPG, PNG, WebP, GIF — max 5MB</span>
+                    </>
+                  )}
+                </button>
+              ) : null}
+              {uploadError && (
+                <p className="text-red-400 text-xs mt-1.5">{uploadError}</p>
+              )}
+            </div>
+          )}
+
+          {/* Preview — shown for both modes once thumbnail is set */}
+          {form.thumbnail && (
+            <div className="mt-3 relative rounded-xl overflow-hidden border border-border group">
+              <div className="relative h-40 w-full">
+                <Image
+                  src={form.thumbnail}
+                  alt="Thumbnail preview"
+                  fill
+                  className="object-cover"
+                  onError={() => set("thumbnail", "")}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => set("thumbnail", "")}
+                className="absolute top-2 right-2 w-7 h-7 rounded-lg bg-dark/80 border border-border text-gray-400 hover:text-white flex items-center justify-center transition-colors"
+              >
+                <RiCloseLine size={14} />
+              </button>
+              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-dark/80 to-transparent px-3 py-2">
+                <p className="text-white text-xs font-medium truncate">{form.thumbnail}</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Description */}
@@ -116,7 +238,7 @@ export default function AddEventPage() {
         <div className="flex gap-3 pt-2">
           <button
             type="submit"
-            disabled={loading || success}
+            disabled={loading || success || !form.thumbnail}
             className="flex items-center gap-2 bg-primary text-dark font-semibold px-6 py-3 rounded-xl hover:bg-primary/80 transition-all shadow-lg shadow-primary/20 disabled:opacity-60"
           >
             {success ? <><RiCheckLine size={16} /> Saved!</> : loading ? "Saving..." : <><RiSaveLine size={16} /> Save Event</>}
@@ -126,10 +248,6 @@ export default function AddEventPage() {
           </button>
         </div>
       </form>
-
-      <p className="text-gray-700 text-xs mt-4 text-center">
-        Note: Connect a database in <code className="text-gray-600">/app/api/admin/events/route.ts</code> to persist events.
-      </p>
     </div>
   );
 }

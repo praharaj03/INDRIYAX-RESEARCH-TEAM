@@ -1,11 +1,6 @@
 "use client";
-import { useState } from "react";
-import { RiSaveLine, RiCheckLine, RiFlashlightLine, RiVipCrownLine, RiCouponLine, RiAddLine } from "react-icons/ri";
-
-const defaultPricing = {
-  pro_monthly: "199",
-  elite_annual: "1499",
-};
+import { useState, useEffect } from "react";
+import { RiSaveLine, RiCheckLine, RiFlashlightLine, RiVipCrownLine, RiCouponLine, RiAddLine, RiLoader4Line } from "react-icons/ri";
 
 const defaultDiscounts = [
   { code: "STUDENT50", type: "percent", value: "50", plan: "pro", note: "Student discount" },
@@ -13,16 +8,45 @@ const defaultDiscounts = [
 ];
 
 export default function PricingControls() {
-  const [pricing, setPricing] = useState(defaultPricing);
+  const [pricing, setPricing] = useState({ pro_monthly: "199", elite_annual: "1499" });
   const [discounts, setDiscounts] = useState(defaultDiscounts);
-  const [saved, setSaved] = useState(false);
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [newCode, setNewCode] = useState({ code: "", type: "percent", value: "", plan: "all", note: "" });
   const [showAdd, setShowAdd] = useState(false);
 
-  function handleSavePricing() {
-    // TODO (Backend Dev): PATCH /api/admin/payments/pricing with { pro_monthly, elite_annual }
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  // Load current prices from API on mount
+  useEffect(() => {
+    fetch("/api/admin/payments/pricing")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.pro_monthly && data.elite_annual) {
+          setPricing({
+            pro_monthly: String(data.pro_monthly),
+            elite_annual: String(data.elite_annual),
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  async function handleSavePricing() {
+    setSaveState("saving");
+    try {
+      const res = await fetch("/api/admin/payments/pricing", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pro_monthly: Number(pricing.pro_monthly),
+          elite_annual: Number(pricing.elite_annual),
+        }),
+      });
+      if (!res.ok) throw new Error();
+      setSaveState("saved");
+      setTimeout(() => setSaveState("idle"), 2500);
+    } catch {
+      setSaveState("error");
+      setTimeout(() => setSaveState("idle"), 2500);
+    }
   }
 
   function handleAddDiscount() {
@@ -97,12 +121,20 @@ export default function PricingControls() {
           </div>
 
           <div className="pt-1 flex items-center justify-between border-t border-border">
-            <p className="text-gray-600 text-xs">Changes will reflect on the /subscribe page after backend is wired</p>
+            <p className="text-gray-600 text-xs">Changes reflect on the /subscribe page immediately</p>
             <button
               onClick={handleSavePricing}
-              className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-lg bg-primary text-dark hover:bg-primary/90 transition-colors"
+              disabled={saveState === "saving"}
+              className={`flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-lg transition-colors disabled:opacity-60 ${
+                saveState === "saved"  ? "bg-emerald-500 text-white" :
+                saveState === "error"  ? "bg-red-500 text-white" :
+                "bg-primary text-dark hover:bg-primary/90"
+              }`}
             >
-              {saved ? <><RiCheckLine size={13} /> Saved</> : <><RiSaveLine size={13} /> Save Pricing</>}
+              {saveState === "saving" ? <><RiLoader4Line size={13} className="animate-spin" /> Saving...</> :
+               saveState === "saved"  ? <><RiCheckLine size={13} /> Saved!</> :
+               saveState === "error"  ? "Error — retry" :
+               <><RiSaveLine size={13} /> Save Pricing</>}
             </button>
           </div>
         </div>
