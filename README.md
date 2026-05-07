@@ -50,6 +50,7 @@ INDRIYAX/
 │   │   ├── page.tsx                    # Home page
 │   │   ├── about/page.tsx              # About page
 │   │   ├── contact/page.tsx            # Contact page
+│   │   ├── contact/contact.config.ts   # ✏️  Edit this to update all contact details
 │   │   ├── news/page.tsx               # Medical news listing
 │   │   ├── subscribe/page.tsx          # 3-tier subscription pricing page
 │   │   ├── register/page.tsx           # Google Form embed
@@ -402,6 +403,34 @@ Admin can upload event thumbnails from their local system on the Add/Edit Event 
 - Allowed: JPG, PNG, WebP, GIF — max 5MB
 - Saved to `public/uploads/<timestamp>-<random>.<ext>`
 - Returns `{ url: "/uploads/filename.jpg" }` which is stored as the event thumbnail
+
+---
+
+## Contact Page Configuration
+
+All contact details shown on `/contact` are managed in a single file:
+
+**`app/(public)/contact/contact.config.ts`**
+
+```ts
+export const contactConfig = {
+  email:       "contact@indriyax.com",
+  phone:       "+91 98765 43210",
+  address:     "123, Vision Street, Andheri West\nMumbai, Maharashtra – 400053",
+  clinicHours: "Mon – Sat: 9:00 AM – 7:00 PM\nSunday: Closed",
+
+  social: {
+    whatsapp:  "https://wa.me/919876543210",
+    telegram:  "https://t.me/indriyax",
+    linkedin:  "https://linkedin.com/company/indriyax",
+    instagram: "https://instagram.com/indriyax",
+    twitter:   "https://twitter.com/indriyax",
+  },
+};
+```
+
+- Set any social URL to `""` to hide that icon automatically
+- No other file needs to be touched — `page.tsx` reads directly from this config
 
 ---
 

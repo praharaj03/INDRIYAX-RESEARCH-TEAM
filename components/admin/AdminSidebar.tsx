@@ -8,17 +8,19 @@ import {
   RiAddCircleLine,
   RiBarChartLine,
   RiMoneyDollarCircleLine,
+  RiNewspaperLine,
   RiLogoutBoxLine,
   RiExternalLinkLine,
   RiCloseLine,
 } from "react-icons/ri";
 
 const nav = [
-  { href: "/admin/dashboard", icon: RiDashboardLine,           label: "Dashboard" },
-  { href: "/admin/events",    icon: RiCalendarEventLine,       label: "Events" },
-  { href: "/admin/events/add",icon: RiAddCircleLine,           label: "Add Event" },
-  { href: "/admin/payments",  icon: RiMoneyDollarCircleLine,   label: "Payments" },
-  { href: "/admin/analytics", icon: RiBarChartLine,            label: "Analytics" },
+  { href: "/admin/dashboard", icon: RiDashboardLine,         label: "Dashboard" },
+  { href: "/admin/events",    icon: RiCalendarEventLine,     label: "Events" },
+  { href: "/admin/events/add",icon: RiAddCircleLine,         label: "Add Event" },
+  { href: "/admin/news",      icon: RiNewspaperLine,         label: "News" },
+  { href: "/admin/payments",  icon: RiMoneyDollarCircleLine, label: "Payments" },
+  { href: "/admin/analytics", icon: RiBarChartLine,          label: "Analytics" },
 ];
 
 export default function AdminSidebar({ onClose }: { onClose?: () => void }) {

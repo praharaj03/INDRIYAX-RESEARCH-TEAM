@@ -8,7 +8,7 @@ export const contactConfig = {
 
   // ── Info cards ──────────────────────────────────────────────────────────────
   email: "contact@indriyax.com",
-  phone: "+91 98765 43210",
+  phone: "+91 99999 99999",
   address: "123, Vision Street, Andheri West\nMumbai, Maharashtra – 400053",
   clinicHours: "Mon – Sat: 9:00 AM – 7:00 PM\nSunday: Closed",
 
