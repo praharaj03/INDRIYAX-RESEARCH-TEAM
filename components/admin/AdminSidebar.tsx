@@ -7,15 +7,17 @@ import {
   RiCalendarEventLine,
   RiAddCircleLine,
   RiBarChartLine,
+  RiMoneyDollarCircleLine,
   RiLogoutBoxLine,
   RiExternalLinkLine,
 } from "react-icons/ri";
 
 const nav = [
-  { href: "/admin/dashboard", icon: RiDashboardLine, label: "Dashboard" },
-  { href: "/admin/events", icon: RiCalendarEventLine, label: "Events" },
-  { href: "/admin/events/add", icon: RiAddCircleLine, label: "Add Event" },
-  { href: "/admin/analytics", icon: RiBarChartLine, label: "Analytics" },
+  { href: "/admin/dashboard", icon: RiDashboardLine,           label: "Dashboard" },
+  { href: "/admin/events",    icon: RiCalendarEventLine,       label: "Events" },
+  { href: "/admin/events/add",icon: RiAddCircleLine,           label: "Add Event" },
+  { href: "/admin/payments",  icon: RiMoneyDollarCircleLine,   label: "Payments" },
+  { href: "/admin/analytics", icon: RiBarChartLine,            label: "Analytics" },
 ];
 
 export default function AdminSidebar() {

@@ -3,10 +3,11 @@ import { usePathname } from "next/navigation";
 import { RiCalendarLine } from "react-icons/ri";
 
 const titles: Record<string, { title: string; sub: string }> = {
-  "/admin/dashboard": { title: "Dashboard", sub: "Overview" },
-  "/admin/events": { title: "Events", sub: "Manage all events" },
-  "/admin/events/add": { title: "Add Event", sub: "Create a new event" },
-  "/admin/analytics": { title: "Analytics", sub: "Site performance" },
+  "/admin/dashboard":    { title: "Dashboard",  sub: "Overview" },
+  "/admin/events":       { title: "Events",     sub: "Manage all events" },
+  "/admin/events/add":   { title: "Add Event",  sub: "Create a new event" },
+  "/admin/payments":     { title: "Payments",   sub: "Revenue & subscriptions" },
+  "/admin/analytics":    { title: "Analytics",  sub: "Site performance" },
 };
 
 export default function AdminTopbar() {
