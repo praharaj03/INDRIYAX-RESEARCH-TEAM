@@ -1,0 +1,186 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL") 
+}
+
+// ------------------------------------------------------
+// ENUMS
+// ------------------------------------------------------
+
+enum Role {
+  USER
+  AUTHOR
+  ADMIN
+}
+
+enum EventType {
+  ONLINE
+  OFFLINE
+  HYBRID
+}
+
+enum Plan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  EXPIRED
+  PAST_DUE
+}
+
+// Updated based on your manual flow
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  REJECTED
+  EXPIRED
+}
+
+// ------------------------------------------------------
+// MODELS
+// ------------------------------------------------------
+
+model User {
+  id               String         @id @default(cuid())
+  clerkId          String         @unique
+  email            String         @unique
+  fullName         String?
+  imageUrl         String?
+  role             Role           @default(USER)
+  
+  // Relations
+  subscriptions    Subscription[]
+  posts            Post[]         
+  comments         Comment[]
+  
+  // Payment Relations: Distinguishing between a user making a payment vs an admin reviewing it
+  payments         Payment[]      @relation("UserPayments")
+  reviewedPayments Payment[]      @relation("AdminReviewer")
+
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([clerkId])
+  @@index([email])
+}
+
+model Post {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  title       String
+  content     String    @db.Text
+  excerpt     String?   @db.Text
+  coverImage  String?
+  
+  published   Boolean   @default(false)
+  isPremium   Boolean   @default(false) 
+  tags        String[]  
+  
+  // Relations
+  authorId    String
+  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments    Comment[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([slug])
+  @@index([authorId])
+}
+
+model Comment {
+  id          String   @id @default(cuid())
+  content     String   @db.Text
+  
+  // Relations
+  postId      String
+  post        Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([postId])
+  @@index([userId])
+}
+
+model Event {
+  id            String    @id @default(cuid())
+  slug          String    @unique
+  title         String
+  description   String    @db.Text
+  speaker       String
+  thumbnail     String
+  venue         String
+  type          EventType
+  
+  restricted    Boolean   @default(false)
+  isActive      Boolean   @default(true)
+  summary       String?   @db.Text
+  recordingLink String?
+  date          DateTime
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([slug])
+  @@index([date])
+}
+
+model Subscription {
+  id          String             @id @default(cuid())
+  userId      String
+  plan        Plan
+  status      SubscriptionStatus
+  startDate   DateTime
+  expiryDate  DateTime
+  
+  // Relations
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime           @default(now())
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Payment {
+  id              String        @id @default(cuid())
+  userId          String
+  plan            Plan
+  amount          Int           // e.g., 199 (Store exact INR amount)
+  
+  // Manual Verification Data
+  utr             String?       @unique
+  screenshotUrl   String?
+  
+  status          PaymentStatus @default(PENDING)
+  
+  // Admin Review Tracking
+  reviewedById    String?
+  rejectionReason String?
+  reviewedAt      DateTime?
+
+  // Relations
+  user            User          @relation("UserPayments", fields: [userId], references: [id], onDelete: Cascade)
+  reviewer        User?         @relation("AdminReviewer", fields: [reviewedById], references: [id]) // Tracks which Admin approved/rejected
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([userId])
+  @@index([utr])
+  @@index([status])
+}

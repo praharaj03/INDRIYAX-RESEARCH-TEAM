@@ -16,11 +16,12 @@ IndriyaX backend is a dedicated **Node.js + Express.js** REST API service built 
 |---|---|
 | Node.js | Runtime |
 | Express.js | REST API server |
-| Clerk | Authentication & session management |
+| Supabase Auth | Authentication & session management |
 | Supabase PostgreSQL | Primary database |
 | Supabase Storage | File/image storage |
 | Prisma ORM | Database abstraction |
-| Razorpay / Stripe | Payment gateway |
+| UPI / QR Code | Manual payment collection |
+| Bravo | Transactional emails |
 | Zod | Request validation |
 | JWT | Internal tokens / admin security |
 | Winston / Pino | Logging |
@@ -40,17 +41,17 @@ IndriyaX backend is a dedicated **Node.js + Express.js** REST API service built 
 │    REST API Server       │
 └────────────┬─────────────┘
              │
-   ┌─────────┼─────────┐
-   ▼         ▼         ▼
-Clerk     Supabase   Supabase
-Auth      PostgreSQL  Storage
+   ┌─────────┼──────────────┐
+   ▼         ▼              ▼
+Supabase  Supabase       Supabase
+Auth      PostgreSQL      Storage
              │
              ▼
          Prisma ORM
              │
              ▼
-      Payment Gateways
-     (Razorpay / Stripe)
+   Manual Payment Verification
+      (UPI / QR + Admin)
 ```
 
 ---
@@ -92,8 +93,7 @@ backend/
 │   ├── config/
 │   │   ├── env.config.js
 │   │   ├── prisma.config.js
-│   │   ├── clerk.config.js
-│   │   ├── supabase.config.js
+│   │   ├── supabase.config.js        ← Auth + DB + Storage client
 │   │   └── logger.config.js
 │   │
 │   ├── modules/
@@ -166,16 +166,67 @@ backend/
 
 ---
 
-## Authentication (Clerk)
+## Authentication (Supabase Auth)
 
-Clerk handles authentication, OAuth, session management, and token lifecycle. The backend verifies Clerk JWTs on every protected request.
+Supabase Auth handles the full authentication lifecycle — sign up, sign in, OAuth (Google, GitHub, etc.), email verification, password reset, and JWT session management. No external auth provider is needed.
 
 ```
-Frontend Login → Clerk Authenticates → Session Token Issued
-→ Bearer Token Sent → Backend Verifies JWT → Request Authorized
+Frontend Login / Sign Up
+       ↓
+Supabase Auth (email / OAuth)
+       ↓
+Supabase Issues JWT Access Token
+       ↓
+Frontend Sends Bearer Token
+       ↓
+Backend Verifies JWT via Supabase
+       ↓
+Request Authorized
 ```
 
-An internal `User` table is maintained in PostgreSQL to track subscriptions, payments, roles, and analytics independently of Clerk.
+### Auth Middleware
+
+```js
+import { supabase } from '../config/supabase.config.js';
+
+export const authenticate = async (req, res, next) => {
+  const token = req.headers.authorization?.split(' ')[1];
+
+  if (!token) throw new UnauthorizedException('No token provided');
+
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+
+  if (error || !user) throw new UnauthorizedException('Invalid or expired token');
+
+  req.user = user;
+  next();
+};
+```
+
+### Supabase Client Setup
+
+```js
+// config/supabase.config.js
+import { createClient } from '@supabase/supabase-js';
+
+export const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+```
+
+> The **service role key** is used server-side only. It bypasses Row Level Security and must never be exposed to the frontend.
+
+### User Synchronization
+
+Supabase Auth manages credentials, but an internal `User` table in PostgreSQL is maintained via Prisma to track:
+
+- subscription status
+- payment history
+- admin roles
+- analytics and activity
+
+A user record is created or synced on first authenticated request using the Supabase `auth.uid()` as the foreign key.
 
 ---
 
@@ -185,13 +236,14 @@ An internal `User` table is maintained in PostgreSQL to track subscriptions, pay
 ```prisma
 model User {
   id            String   @id @default(cuid())
-  clerkId       String   @unique
+  supabaseId    String   @unique          // maps to auth.uid() from Supabase Auth
   email         String   @unique
   fullName      String?
   imageUrl      String?
   role          Role     @default(USER)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
   subscriptions Subscription[]
   payments      Payment[]
 }
@@ -228,6 +280,7 @@ model Subscription {
   startDate  DateTime
   expiryDate DateTime
   createdAt  DateTime           @default(now())
+
   user       User @relation(fields: [userId], references: [id])
 }
 ```
@@ -235,17 +288,32 @@ model Subscription {
 ### Payment
 ```prisma
 model Payment {
-  id               String        @id @default(cuid())
-  userId           String
-  plan             Plan
-  amount           Int
-  currency         String
-  paymentGateway   String
-  gatewayPaymentId String
-  gatewayOrderId   String
-  status           PaymentStatus
-  createdAt        DateTime      @default(now())
-  user             User @relation(fields: [userId], references: [id])
+  id              String        @id @default(cuid())
+  userId          String
+  plan            Plan
+  amount          Int           // Exact INR amount e.g. 199
+
+  // Manual Verification Data
+  utr             String?       @unique
+  screenshotUrl   String?
+
+  status          PaymentStatus @default(PENDING)
+
+  // Admin Review Tracking
+  reviewedById    String?
+  rejectionReason String?
+  reviewedAt      DateTime?
+
+  // Relations
+  user            User          @relation("UserPayments", fields: [userId], references: [id], onDelete: Cascade)
+  reviewer        User?         @relation("AdminReviewer", fields: [reviewedById], references: [id])
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([userId])
+  @@index([utr])
+  @@index([status])
 }
 ```
 
@@ -333,18 +401,57 @@ All unhandled errors are caught by `app.use(errorMiddleware)` which returns stru
 
 ---
 
-## Payment Flow (Razorpay)
+## Payment System (Manual UPI Verification)
+
+IndriyaX uses a manual UPI/QR-based payment verification flow — no payment gateway required. This keeps the MVP simple, cheap, and fully under admin control.
+
+### Full Payment Flow
 
 ```
-User Selects Plan
-  → Backend Creates Razorpay Order
-  → Frontend Opens Razorpay Checkout
-  → Payment Completed
-  → Backend Verifies Signature (HMAC SHA-256)
-  → Payment Record Stored
-  → Subscription Activated
-  → Success Response
+User Selects Plan (e.g. Pro → ₹199)
+       ↓
+Frontend Shows QR Code + UPI ID + Amount
+       ↓
+User Pays via UPI App
+       ↓
+User Submits Verification Form (UTR + optional screenshot)
+       ↓
+Backend Creates PENDING Payment Record
+       ↓
+Confirmation Email Sent to User
+       ↓
+Frontend Shows "Verification Pending" (est. 1–6 hours)
+       ↓
+Admin Reviews in Dashboard (UTR / bank statement check)
+       ↓
+Admin Approves or Rejects
+       ↓
+On Approval → payment.status = SUCCESS
+            → subscription.status = ACTIVE
+            → Success Email Sent to User
 ```
+
+### Payment Status Lifecycle
+
+```
+PENDING → SUCCESS
+        → REJECTED
+        → EXPIRED
+```
+
+### User Submission Form Fields
+
+| Field | Required |
+|---|---|
+| UTR / Transaction ID | YES |
+| Screenshot | Optional |
+| Plan | YES |
+
+### Admin Dashboard View
+
+| User | Plan | Amount | UTR | Screenshot | Status | Actions |
+|---|---|---|---|---|---|---|
+| user@email.com | PRO | ₹199 | 234234234 | view | PENDING | Approve / Reject |
 
 ---
 
@@ -368,6 +475,7 @@ Upload flow: validate file → upload to bucket → get public URL → store URL
 | Request size limit | `express.json({ limit: '10mb' })` |
 | File validation | MIME type, size, extension checks |
 | Internal auth | JWT for admin APIs and service-to-service calls |
+| Service role key | Server-side only, never exposed to client |
 
 ---
 
@@ -391,19 +499,27 @@ NODE_ENV=production
 DATABASE_URL=
 DIRECT_URL=
 
-CLERK_SECRET_KEY=
-CLERK_PUBLISHABLE_KEY=
-
 SUPABASE_URL=
+SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 
 RAZORPAY_KEY_ID=
 RAZORPAY_SECRET=
 
+# Email (Nodemailer / Resend)
+EMAIL_FROM=
+RESEND_API_KEY=
+
+# UPI Details (served to frontend for QR display)
+UPI_ID=payments@upi
+UPI_QR_IMAGE_URL=
+
 JWT_SECRET=
 
 FRONTEND_URL=https://indriyax.com
 ```
+
+> `SUPABASE_SERVICE_ROLE_KEY` is used exclusively on the backend. `SUPABASE_ANON_KEY` is safe for the frontend.
 
 ---
 
@@ -411,9 +527,9 @@ FRONTEND_URL=https://indriyax.com
 
 | Phase | Scope |
 |---|---|
-| **Phase 1** | Core infrastructure — Express, Prisma, Clerk, Supabase, logging, error handling, validation |
+| **Phase 1** | Core infrastructure — Express, Prisma, Supabase Auth, logging, error handling, validation |
 | **Phase 2** | Events & News — CRUD, admin management, uploads, pagination, filtering |
-| **Phase 3** | Payments & Subscriptions — Razorpay, verification, access control, discount system |
+| **Phase 3** | Payments & Subscriptions — UPI/QR flow, manual UTR submission, admin approval, email notifications, subscription activation |
 | **Phase 4** | Production hardening — optimization, security, monitoring, Swagger docs, testing, audit logs |
 
 ---
@@ -427,7 +543,7 @@ FRONTEND_URL=https://indriyax.com
 | AWS ECS | Enterprise scale |
 | DigitalOcean | Solid mid-tier option |
 
-**Database & Storage:** Supabase (managed PostgreSQL + object storage)
+**Database, Auth & Storage:** Supabase (fully managed)
 
 ---
 
@@ -436,11 +552,12 @@ FRONTEND_URL=https://indriyax.com
 ```
 Frontend   →  Next.js
 Backend    →  Node.js + Express.js
-Auth       →  Clerk
+Auth       →  Supabase Auth
 Database   →  Supabase PostgreSQL
 Storage    →  Supabase Storage
 ORM        →  Prisma
-Payments   →  Razorpay / Stripe
+Payments   →  UPI / QR (Manual Verification)
+Email      →  Nodemailer / Resend
 Validation →  Zod
 Logging    →  Winston / Pino
 ```
