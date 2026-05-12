@@ -7,6 +7,12 @@ export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if (!pathname.startsWith(ADMIN_PREFIX)) return NextResponse.next();
+  
+  // Allow auth API routes without session check
+  if (pathname.startsWith("/api/admin/auth")) {
+    return NextResponse.next();
+  }
+  
   // Already logged in → skip login page
   if (pathname === LOGIN_PATH) {
     const session = req.cookies.get("admin_session")?.value;

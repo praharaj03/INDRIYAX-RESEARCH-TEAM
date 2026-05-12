@@ -19,12 +19,17 @@ export async function POST(req: NextRequest) {
 
   const res = NextResponse.json({ success: true });
 
+  // Session duration in seconds (default: 8 hours)
+  // Can be configured via ADMIN_SESSION_DURATION env variable (in hours)
+  const sessionDurationHours = parseInt(process.env.ADMIN_SESSION_DURATION || "8", 10);
+  const maxAge = 60 * 60 * sessionDurationHours;
+
   res.cookies.set("admin_session", "authenticated", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 8, // 8 hours
+    maxAge,
   });
 
   return res;
