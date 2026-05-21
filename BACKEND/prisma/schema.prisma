@@ -26,20 +26,6 @@ enum EventType {
   HYBRID
 }
 
-enum Plan {
-  FREE
-  PRO
-  ENTERPRISE
-}
-
-enum SubscriptionStatus {
-  ACTIVE
-  CANCELED
-  EXPIRED
-  PAST_DUE
-}
-
-// Updated based on your manual flow
 enum PaymentStatus {
   PENDING
   SUCCESS
@@ -47,31 +33,36 @@ enum PaymentStatus {
   EXPIRED
 }
 
+// NEW: Tracks if a user is allowed to attend the event
+enum EnrollmentStatus {
+  PENDING    // Waiting for payment verification
+  APPROVED   // Payment verified, ticket confirmed
+  REJECTED   // Payment failed/rejected
+}
+
 // ------------------------------------------------------
 // MODELS
 // ------------------------------------------------------
 
 model User {
-  id               String         @id @default(uuid())
-  clerkId          String         @unique
+  id               String         @id @default(uuid()) // Supabase UUID
   email            String         @unique
   fullName         String?
   imageUrl         String?
   role             Role           @default(USER)
   
   // Relations
-  subscriptions    Subscription[]
   posts            Post[]         
   comments         Comment[]
+  enrollments      Enrollment[]   // Replaced subscriptions with enrollments
   
-  // Payment Relations: Distinguishing between a user making a payment vs an admin reviewing it
+  // Payment Relations
   payments         Payment[]      @relation("UserPayments")
   reviewedPayments Payment[]      @relation("AdminReviewer")
 
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
-  @@index([clerkId])
   @@index([email])
 }
 
@@ -126,11 +117,16 @@ model Event {
   venue         String
   type          EventType
   
+  price         Int       @default(0) // 0 means free event
   restricted    Boolean   @default(false)
   isActive      Boolean   @default(true)
   summary       String?   @db.Text
   recordingLink String?
   date          DateTime
+
+  // Relations
+  enrollments   Enrollment[]
+  payments      Payment[]
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -139,28 +135,30 @@ model Event {
   @@index([date])
 }
 
-model Subscription {
-  id          String             @id @default(cuid())
+// NEW: Replaces the Subscription model
+model Enrollment {
+  id          String           @id @default(cuid())
   userId      String
-  plan        Plan
-  status      SubscriptionStatus
-  startDate   DateTime
-  expiryDate  DateTime
-  
-  // Relations
-  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId     String
+  status      EnrollmentStatus @default(PENDING)
 
-  createdAt   DateTime           @default(now())
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event       Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  // Ensures a user cannot buy two tickets for the exact same event
+  @@unique([userId, eventId]) 
   @@index([userId])
-  @@index([status])
+  @@index([eventId])
 }
 
 model Payment {
   id              String        @id @default(cuid())
   userId          String
-  plan            Plan
-  amount          Int           // e.g., 199 (Store exact INR amount)
+  eventId         String        // Replaced 'plan' with 'eventId'
+  amount          Int           
   
   // Manual Verification Data
   utr             String?       @unique
@@ -175,12 +173,14 @@ model Payment {
 
   // Relations
   user            User          @relation("UserPayments", fields: [userId], references: [id], onDelete: Cascade)
-  reviewer        User?         @relation("AdminReviewer", fields: [reviewedById], references: [id]) // Tracks which Admin approved/rejected
+  event           Event         @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  reviewer        User?         @relation("AdminReviewer", fields: [reviewedById], references: [id])
 
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
   @@index([userId])
+  @@index([eventId])
   @@index([utr])
   @@index([status])
 }

@@ -25,6 +25,7 @@ export const errorMiddleware = (err, req, res, next) => {
         success: false,
         status: err.status,
         message: err.message,
+        errors: err.errors || undefined,
       });
     }
 

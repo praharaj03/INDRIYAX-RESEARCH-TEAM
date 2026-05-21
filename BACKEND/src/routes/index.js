@@ -1,4 +1,6 @@
 import { Router } from 'express';
+import paymentRoutes from '../modules/payments/payment.routes.js';
+import authRoutes from '../modules/auth/auth.routes.js';
 
 const router = Router();
 
@@ -10,9 +12,7 @@ router.get('/health', (req, res) => {
   });
 });
 
-// We will import and mount our specific module routes here later
-// Example:
-// import paymentRoutes from '../modules/payments/payment.routes.js';
-// router.use('/payments', paymentRoutes);
+router.use('/auth', authRoutes);
+router.use('/payments', paymentRoutes);
 
 export default router;
