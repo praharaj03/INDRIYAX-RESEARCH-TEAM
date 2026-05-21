@@ -8,8 +8,7 @@ export const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
   databaseUrl: process.env.DATABASE_URL,
-  clerk: {
-    secretKey: process.env.CLERK_SECRET_KEY,
-    publishableKey: process.env.CLERK_PUBLISHABLE_KEY,
+  supabase: {
+    jwtSecret: process.env.SUPABASE_JWT_SECRET,
   }
 };
