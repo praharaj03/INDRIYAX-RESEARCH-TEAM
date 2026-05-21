@@ -6,10 +6,10 @@ import { updateProfileSchema } from './auth.validator.js';
 
 const router = Router();
 
-// GET /api/v1/auth/me -> Fetch profile
+// GET /api/v1/auth/me (Fetch profile)
 router.get('/me', protect, getMe);
 
-// PATCH /api/v1/auth/me -> Update profile
+// PATCH /api/v1/auth/me (Update profile)
 router.patch('/me', protect, validate(updateProfileSchema), updateMe);
 
 export default router;
