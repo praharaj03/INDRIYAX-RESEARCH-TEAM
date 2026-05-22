@@ -10,5 +10,7 @@ export const config = {
   databaseUrl: process.env.DATABASE_URL,
   supabase: {
     jwtSecret: process.env.SUPABASE_JWT_SECRET,
+    url: process.env.SUPABASE_URL,                   
+    serviceKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
   }
 };
