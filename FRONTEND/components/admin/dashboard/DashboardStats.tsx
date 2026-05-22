@@ -1,17 +1,32 @@
-import { RiCalendarEventLine, RiHistoryLine, RiNewspaperLine } from "react-icons/ri";
-import { events, news } from "@/lib/data/index";
+"use client";
+import { useEffect, useState } from "react";
+import { RiCalendarEventLine, RiGroupLine, RiMoneyDollarCircleLine, RiCheckboxCircleLine } from "react-icons/ri";
+import { apiFetch, getToken } from "@/lib/api";
 
-const upcoming = events.filter((e) => e.type === "upcoming");
-const past = events.filter((e) => e.type === "past");
-
-const stats = [
-  { icon: RiCalendarEventLine, label: "Upcoming", value: upcoming.length, color: "text-primary", bg: "bg-primary/10" },
-  { icon: RiHistoryLine, label: "Past Events", value: past.length, color: "text-violet-400", bg: "bg-violet-500/10" },
-  { icon: RiNewspaperLine, label: "News", value: news.length, color: "text-emerald-400", bg: "bg-emerald-500/10" },
-  { icon: RiCalendarEventLine, label: "Total Events", value: events.length, color: "text-amber-400", bg: "bg-amber-500/10" },
-];
+interface Overview {
+  totalEarnings: number;
+  totalEventsConducted: number;
+  totalUsers: number;
+  totalSuccessfulEnrollments: number;
+}
 
 export default function DashboardStats() {
+  const [overview, setOverview] = useState<Overview | null>(null);
+
+  useEffect(() => {
+    const token = getToken();
+    apiFetch("/api/v1/dashboard/overall", {}, token ?? undefined)
+      .then((d) => setOverview(d.data?.overview ?? null))
+      .catch(console.error);
+  }, []);
+
+  const stats = [
+    { icon: RiCalendarEventLine, label: "Total Events", value: overview?.totalEventsConducted ?? "—", color: "text-primary", bg: "bg-primary/10" },
+    { icon: RiGroupLine, label: "Total Users", value: overview?.totalUsers ?? "—", color: "text-violet-400", bg: "bg-violet-500/10" },
+    { icon: RiCheckboxCircleLine, label: "Enrollments", value: overview?.totalSuccessfulEnrollments ?? "—", color: "text-emerald-400", bg: "bg-emerald-500/10" },
+    { icon: RiMoneyDollarCircleLine, label: "Total Revenue", value: overview ? `₹${overview.totalEarnings}` : "—", color: "text-amber-400", bg: "bg-amber-500/10" },
+  ];
+
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
       {stats.map(({ icon: Icon, label, value, color, bg }) => (

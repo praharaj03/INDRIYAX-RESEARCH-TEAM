@@ -22,14 +22,8 @@ export default function EventCard({ event }: { event: Event }) {
           className="object-cover group-hover:scale-105 transition-transform duration-500"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-dark-3/80 to-transparent" />
-        <span
-          className={`absolute top-3 left-3 text-xs font-semibold px-2.5 py-1 rounded-full border ${
-            event.type === "upcoming"
-              ? "bg-primary/10 text-primary border-primary/30"
-              : "bg-white/5 text-gray-300 border-white/10"
-          }`}
-        >
-          {event.type === "upcoming" ? "Upcoming" : "Past"}
+        <span className="absolute top-3 left-3 text-xs font-semibold px-2.5 py-1 rounded-full border bg-primary/10 text-primary border-primary/30">
+          {event.type}
         </span>
       </div>
 

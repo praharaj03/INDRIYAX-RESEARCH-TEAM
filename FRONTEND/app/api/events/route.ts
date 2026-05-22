@@ -1,17 +1,13 @@
 import { NextResponse } from "next/server";
-import { events } from "@/lib/data/index";
 
-// TODO (Backend Dev): Replace with MongoDB query
-// import { connectDB } from "@/config/db";
-// import { EventModel } from "@/lib/models/Event";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://api.indriyax.com";
 
 export async function GET() {
-  return NextResponse.json(events);
-}
-
-export async function POST() {
-  return NextResponse.json(
-    { message: "TODO: connect MongoDB" },
-    { status: 501 },
-  );
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/events`, { next: { revalidate: 30 } });
+    const data = await res.json();
+    return NextResponse.json(data);
+  } catch {
+    return NextResponse.json({ success: false, data: [] });
+  }
 }

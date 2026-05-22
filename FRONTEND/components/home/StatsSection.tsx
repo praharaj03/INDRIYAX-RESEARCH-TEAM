@@ -3,13 +3,12 @@ import {
   RiCalendarEventLine, RiGroupLine,
   RiMapPin2Line, RiShieldCrossLine,
 } from "react-icons/ri";
-import { events } from "@/lib/data/index";
 
 const stats = [
-  { icon: RiCalendarEventLine, value: `${events.filter((e) => e.type === "upcoming").length}`, label: "Upcoming Events" },
+  { icon: RiCalendarEventLine, value: "20+", label: "Upcoming Events" },
   { icon: RiGroupLine, value: "1,000+", label: "Practitioners Trained" },
   { icon: RiMapPin2Line, value: "10+", label: "Cities Reached" },
-  { icon: RiShieldCrossLine, value: `${events.filter((e) => e.type === "past").length}`, label: "Past Events" },
+  { icon: RiShieldCrossLine, value: "50+", label: "Past Events" },
 ];
 
 export default function StatsSection() {

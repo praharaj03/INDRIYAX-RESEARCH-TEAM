@@ -1,4 +1,3 @@
-import { events, news } from "@/lib/data/index";
 import {
   RiCalendarEventLine, RiHistoryLine, RiNewspaperLine,
   RiGroupLine, RiGlobalLine, RiMicLine,
@@ -8,16 +7,13 @@ import AnalyticsSpeakers from "@/components/admin/analytics/AnalyticsSpeakers";
 import AnalyticsPerformance from "@/components/admin/analytics/AnalyticsPerformance";
 import AnalyticsSubscriptions from "@/components/admin/analytics/AnalyticsSubscriptions";
 
-const upcoming = events.filter((e) => e.type === "upcoming");
-const past = events.filter((e) => e.type === "past");
-
 const metrics = [
-  { icon: RiCalendarEventLine, label: "Upcoming", value: upcoming.length, color: "text-primary", bg: "bg-primary/10" },
-  { icon: RiHistoryLine, label: "Past Events", value: past.length, color: "text-violet-400", bg: "bg-violet-500/10" },
-  { icon: RiNewspaperLine, label: "News", value: news.length, color: "text-emerald-400", bg: "bg-emerald-500/10" },
+  { icon: RiCalendarEventLine, label: "Upcoming", value: "—", color: "text-primary", bg: "bg-primary/10" },
+  { icon: RiHistoryLine, label: "Past Events", value: "—", color: "text-violet-400", bg: "bg-violet-500/10" },
+  { icon: RiNewspaperLine, label: "News", value: "—", color: "text-emerald-400", bg: "bg-emerald-500/10" },
   { icon: RiGroupLine, label: "Trained", value: "1,000+", color: "text-amber-400", bg: "bg-amber-500/10" },
   { icon: RiGlobalLine, label: "Cities", value: "10+", color: "text-pink-400", bg: "bg-pink-500/10" },
-  { icon: RiMicLine, label: "Speakers", value: events.length, color: "text-sky-400", bg: "bg-sky-500/10" },
+  { icon: RiMicLine, label: "Speakers", value: "—", color: "text-sky-400", bg: "bg-sky-500/10" },
 ];
 
 export default function AnalyticsPage() {

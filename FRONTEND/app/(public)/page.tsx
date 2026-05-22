@@ -1,13 +1,17 @@
-import { events, news } from "@/lib/data/index";
+export const dynamic = "force-dynamic";
+import { getEvents } from "@/services/eventService";
+import { getNews } from "@/services/newsService";
 import HeroSection from "@/components/home/HeroSection";
 import StatsSection from "@/components/home/StatsSection";
 import EventsPreviewSection from "@/components/home/EventsPreviewSection";
 import NewsPreviewSection from "@/components/home/NewsPreviewSection";
 import CTASection from "@/components/home/CTASection";
 
-export default function HomePage() {
-  const upcomingEvents = events.filter((e) => e.type === "upcoming").slice(0, 3);
-  const pastEvents = events.filter((e) => e.type === "past").slice(0, 3);
+export default async function HomePage() {
+  const [events, news] = await Promise.all([getEvents(), getNews()]).catch(() => [[], []]) as [Awaited<ReturnType<typeof getEvents>>, Awaited<ReturnType<typeof getNews>>];
+
+  const upcomingEvents = events.filter((e) => new Date(e.date) >= new Date()).slice(0, 3);
+  const pastEvents = events.filter((e) => new Date(e.date) < new Date()).slice(0, 3);
   const latestNews = news.slice(0, 3);
 
   return (

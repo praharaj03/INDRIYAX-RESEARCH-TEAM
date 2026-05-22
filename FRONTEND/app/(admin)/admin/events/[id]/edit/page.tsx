@@ -2,14 +2,14 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
-import { events } from "@/lib/data/index";
 import {
   RiSaveLine, RiArrowLeftLine, RiCheckLine, RiDeleteBinLine,
   RiLinkM, RiUploadCloud2Line, RiImageLine, RiCloseLine,
 } from "react-icons/ri";
+import { getEventBySlug, updateEvent, deleteEvent, uploadImage } from "@/services/eventService";
+import { apiFetch, getToken } from "@/lib/api";
 
-const inputClass =
-  "w-full bg-dark-4 border border-border text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-gray-700";
+const inputClass = "w-full bg-dark-4 border border-border text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-gray-700";
 const labelClass = "text-xs text-gray-500 font-medium mb-1.5 block";
 
 export default function EditEventPage() {
@@ -22,31 +22,37 @@ export default function EditEventPage() {
   const [thumbMode, setThumbMode] = useState<"url" | "upload">("url");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const [submitError, setSubmitError] = useState("");
   const [form, setForm] = useState({
-    title: "", type: "upcoming", date: "", venue: "",
-    speaker: "", description: "", thumbnail: "",
-    summary: "", recordingLink: "",
-    restricted: false, isActive: true,
+    title: "", type: "OFFLINE" as "OFFLINE" | "ONLINE",
+    date: "", venue: "", speaker: "", description: "",
+    thumbnail: "", summary: "", recordingLink: "",
+    price: "0", restricted: false, isActive: true,
   });
 
   useEffect(() => {
-    // TODO (Backend Dev): Replace with GET /api/admin/events/:id
-    const event = events.find((e) => e.id === id);
-    if (event) {
-      setForm({
-        title: event.title,
-        type: event.type,
-        date: event.date,
-        venue: event.venue,
-        speaker: event.speaker,
-        description: event.description,
-        thumbnail: event.thumbnail,
-        summary: event.summary ?? "",
-        recordingLink: event.recordingLink ?? "",
-        restricted: event.restricted ?? false,
-        isActive: event.isActive ?? true,
-      });
+    async function load() {
+      try {
+        const token = getToken();
+        const data = await apiFetch(`/api/v1/events/${id}`, {}, token ?? undefined);
+        const ev = data.data;
+        setForm({
+          title: ev.title ?? "",
+          type: ev.type ?? "OFFLINE",
+          date: ev.date ? ev.date.slice(0, 16) : "",
+          venue: ev.venue ?? "",
+          speaker: ev.speaker ?? "",
+          description: ev.description ?? "",
+          thumbnail: ev.thumbnail ?? "",
+          summary: ev.summary ?? "",
+          recordingLink: ev.recordingLink ?? "",
+          price: String(ev.price ?? 0),
+          restricted: ev.restricted ?? false,
+          isActive: ev.isActive ?? true,
+        });
+      } catch (err) { console.error(err); }
     }
+    load();
   }, [id]);
 
   function set(key: string, value: string | boolean) {
@@ -55,17 +61,37 @@ export default function EditEventPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setSubmitError("");
     setLoading(true);
-    // TODO (Backend Dev): PATCH /api/admin/events/:id with form payload
-    await new Promise((r) => setTimeout(r, 600)); // remove when wired to API
-    setLoading(false);
-    setSuccess(true);
-    setTimeout(() => router.push("/admin/events"), 1500);
+    try {
+      await updateEvent(id, {
+        title: form.title,
+        description: form.description,
+        speaker: form.speaker,
+        thumbnail: form.thumbnail,
+        venue: form.venue,
+        type: form.type,
+        price: Number(form.price),
+        date: new Date(form.date).toISOString(),
+        restricted: form.restricted,
+        isActive: form.isActive,
+        ...(form.summary ? { summary: form.summary } : {}),
+        ...(form.recordingLink ? { recordingLink: form.recordingLink } : {}),
+      });
+      setSuccess(true);
+      setTimeout(() => router.push("/admin/events"), 1500);
+    } catch (err: unknown) {
+      setSubmitError(err instanceof Error ? err.message : "Failed to update event");
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleDelete() {
-    // TODO (Backend Dev): DELETE /api/admin/events/:id
-    router.push("/admin/events");
+    try {
+      await deleteEvent(id);
+      router.push("/admin/events");
+    } catch (err) { console.error(err); }
   }
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -73,13 +99,9 @@ export default function EditEventPage() {
     if (!file) return;
     setUploading(true);
     setUploadError("");
-    const fd = new FormData();
-    fd.append("file", file);
     try {
-      const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Upload failed");
-      set("thumbnail", data.url);
+      const url = await uploadImage(file, "events");
+      set("thumbnail", url);
     } catch (err: unknown) {
       setUploadError(err instanceof Error ? err.message : "Upload failed");
     } finally {
@@ -101,28 +123,25 @@ export default function EditEventPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="bg-dark-3 border border-border rounded-2xl p-6 flex flex-col gap-5">
-        {/* Title */}
         <div>
           <label className={labelClass}>Event Title *</label>
           <input required className={inputClass} value={form.title} onChange={(e) => set("title", e.target.value)} />
         </div>
 
-        {/* Type + Date */}
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className={labelClass}>Event Type *</label>
             <select required className={inputClass} value={form.type} onChange={(e) => set("type", e.target.value)}>
-              <option value="upcoming">Upcoming</option>
-              <option value="past">Past</option>
+              <option value="OFFLINE">Offline</option>
+              <option value="ONLINE">Online</option>
             </select>
           </div>
           <div>
             <label className={labelClass}>Date *</label>
-            <input required type="date" className={inputClass} value={form.date} onChange={(e) => set("date", e.target.value)} />
+            <input required type="datetime-local" className={inputClass} value={form.date} onChange={(e) => set("date", e.target.value)} />
           </div>
         </div>
 
-        {/* Speaker + Venue */}
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className={labelClass}>Speaker *</label>
@@ -134,21 +153,21 @@ export default function EditEventPage() {
           </div>
         </div>
 
+        <div>
+          <label className={labelClass}>Ticket Price (₹) *</label>
+          <input required type="number" min="0" className={inputClass} value={form.price} onChange={(e) => set("price", e.target.value)} />
+        </div>
+
         {/* Thumbnail */}
         <div>
           <label className={labelClass}>Thumbnail *</label>
-
           <div className="flex gap-1 p-1 bg-dark-4 border border-border rounded-xl mb-3 w-fit">
-            <button type="button" onClick={() => { setThumbMode("url"); }}
-              className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-all ${
-                thumbMode === "url" ? "bg-dark-3 text-white shadow-sm" : "text-gray-500 hover:text-gray-300"
-              }`}>
+            <button type="button" onClick={() => setThumbMode("url")}
+              className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-all ${thumbMode === "url" ? "bg-dark-3 text-white shadow-sm" : "text-gray-500 hover:text-gray-300"}`}>
               <RiLinkM size={13} /> URL
             </button>
-            <button type="button" onClick={() => { setThumbMode("upload"); }}
-              className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-all ${
-                thumbMode === "upload" ? "bg-dark-3 text-white shadow-sm" : "text-gray-500 hover:text-gray-300"
-              }`}>
+            <button type="button" onClick={() => setThumbMode("upload")}
+              className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-all ${thumbMode === "upload" ? "bg-dark-3 text-white shadow-sm" : "text-gray-500 hover:text-gray-300"}`}>
               <RiUploadCloud2Line size={13} /> Upload
             </button>
           </div>
@@ -181,109 +200,77 @@ export default function EditEventPage() {
                 className="absolute top-2 right-2 w-7 h-7 rounded-lg bg-dark/80 border border-border text-gray-400 hover:text-white flex items-center justify-center transition-colors">
                 <RiCloseLine size={14} />
               </button>
-              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-dark/80 to-transparent px-3 py-2">
-                <p className="text-white text-xs font-medium truncate">{form.thumbnail}</p>
-              </div>
             </div>
           )}
         </div>
 
-        {/* Description */}
         <div>
           <label className={labelClass}>Description *</label>
           <textarea required rows={3} className={inputClass} value={form.description} onChange={(e) => set("description", e.target.value)} />
         </div>
 
-        {/* Past-only fields */}
-        {form.type === "past" && (
-          <>
-            <div>
-              <label className={labelClass}>Event Summary</label>
-              <textarea rows={3} className={inputClass} value={form.summary} onChange={(e) => set("summary", e.target.value)} />
-            </div>
-            <div>
-              <label className={labelClass}>Recording Link</label>
-              <input type="url" className={inputClass} value={form.recordingLink} onChange={(e) => set("recordingLink", e.target.value)} />
-            </div>
-          </>
-        )}
+        <div>
+          <label className={labelClass}>Event Summary</label>
+          <textarea rows={3} className={inputClass} value={form.summary} onChange={(e) => set("summary", e.target.value)} />
+        </div>
+        <div>
+          <label className={labelClass}>Recording Link</label>
+          <input type="url" className={inputClass} value={form.recordingLink} onChange={(e) => set("recordingLink", e.target.value)} />
+        </div>
 
         {/* Access control */}
         <div className="bg-dark-4 border border-border rounded-xl p-4 flex flex-col gap-3">
           <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Access Control</p>
-
           <label className="flex items-center justify-between cursor-pointer">
             <div>
               <p className="text-sm text-white font-medium">Restrict to Subscribers</p>
-              <p className="text-xs text-gray-600 mt-0.5">Only users with an active subscription can view full event details</p>
+              <p className="text-xs text-gray-600 mt-0.5">Only subscribed users can view full event details</p>
             </div>
-            <div
-              onClick={() => set("restricted", !form.restricted)}
-              className={`w-10 h-5 rounded-full transition-colors relative cursor-pointer ${form.restricted ? "bg-yellow-500" : "bg-dark-3 border border-border"}`}
-            >
+            <div onClick={() => set("restricted", !form.restricted)}
+              className={`w-10 h-5 rounded-full transition-colors relative cursor-pointer ${form.restricted ? "bg-yellow-500" : "bg-dark-3 border border-border"}`}>
               <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${form.restricted ? "left-5" : "left-0.5"}`} />
             </div>
           </label>
-
           <label className="flex items-center justify-between cursor-pointer">
             <div>
               <p className="text-sm text-white font-medium">Visible to Public</p>
               <p className="text-xs text-gray-600 mt-0.5">When off, event is hidden from all public listings</p>
             </div>
-            <div
-              onClick={() => set("isActive", !form.isActive)}
-              className={`w-10 h-5 rounded-full transition-colors relative cursor-pointer ${form.isActive ? "bg-primary" : "bg-dark-3 border border-border"}`}
-            >
+            <div onClick={() => set("isActive", !form.isActive)}
+              className={`w-10 h-5 rounded-full transition-colors relative cursor-pointer ${form.isActive ? "bg-primary" : "bg-dark-3 border border-border"}`}>
               <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${form.isActive ? "left-5" : "left-0.5"}`} />
             </div>
           </label>
         </div>
 
-        {/* Actions */}
+        {submitError && (
+          <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs px-3 py-2.5 rounded-xl">{submitError}</div>
+        )}
+
         <div className="flex gap-3 pt-2">
-          <button
-            type="submit"
-            disabled={loading || success}
-            className="flex items-center gap-2 bg-primary text-dark font-semibold px-6 py-3 rounded-xl hover:bg-primary/80 transition-all shadow-lg shadow-primary/20 disabled:opacity-60"
-          >
+          <button type="submit" disabled={loading || success}
+            className="flex items-center gap-2 bg-primary text-dark font-semibold px-6 py-3 rounded-xl hover:bg-primary/80 transition-all shadow-lg shadow-primary/20 disabled:opacity-60">
             {success ? <><RiCheckLine size={16} /> Saved!</> : loading ? "Saving..." : <><RiSaveLine size={16} /> Save Changes</>}
           </button>
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="px-6 py-3 rounded-xl border border-border text-gray-400 hover:text-white hover:bg-white/5 text-sm font-medium transition-all"
-          >
+          <button type="button" onClick={() => router.back()}
+            className="px-6 py-3 rounded-xl border border-border text-gray-400 hover:text-white hover:bg-white/5 text-sm font-medium transition-all">
             Cancel
           </button>
-          <button
-            type="button"
-            onClick={() => setDeleteConfirm(true)}
-            className="ml-auto flex items-center gap-1.5 px-4 py-3 rounded-xl border border-red-500/20 text-red-400 hover:bg-red-500/10 text-sm font-medium transition-all"
-          >
+          <button type="button" onClick={() => setDeleteConfirm(true)}
+            className="ml-auto flex items-center gap-1.5 px-4 py-3 rounded-xl border border-red-500/20 text-red-400 hover:bg-red-500/10 text-sm font-medium transition-all">
             <RiDeleteBinLine size={14} /> Delete
           </button>
         </div>
       </form>
 
-      {/* Delete confirmation */}
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-dark-3 border border-border rounded-2xl p-6 max-w-sm w-full mx-4">
             <h3 className="text-white font-bold text-base mb-2">Delete Event?</h3>
             <p className="text-gray-500 text-sm mb-5">This action cannot be undone.</p>
             <div className="flex gap-3">
-              <button
-                onClick={handleDelete}
-                className="flex-1 bg-red-500/10 text-red-400 border border-red-500/20 font-semibold text-sm py-2.5 rounded-xl hover:bg-red-500/20 transition-colors"
-              >
-                Delete
-              </button>
-              <button
-                onClick={() => setDeleteConfirm(false)}
-                className="flex-1 bg-dark-4 text-gray-400 border border-border font-semibold text-sm py-2.5 rounded-xl hover:text-white transition-colors"
-              >
-                Cancel
-              </button>
+              <button onClick={handleDelete} className="flex-1 bg-red-500/10 text-red-400 border border-red-500/20 font-semibold text-sm py-2.5 rounded-xl hover:bg-red-500/20 transition-colors">Delete</button>
+              <button onClick={() => setDeleteConfirm(false)} className="flex-1 bg-dark-4 text-gray-400 border border-border font-semibold text-sm py-2.5 rounded-xl hover:text-white transition-colors">Cancel</button>
             </div>
           </div>
         </div>

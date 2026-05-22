@@ -1,11 +1,14 @@
-import { events } from "@/lib/data/index";
+export const dynamic = "force-dynamic";
+import { getEvents } from "@/services/eventService";
 import EventCard from "@/components/cards/EventCard";
 import AnimateIn from "@/components/ui/AnimateIn";
 import Link from "next/link";
 import { RiCalendarEventLine, RiArrowRightLine } from "react-icons/ri";
 
-export default function UpcomingEventsPage() {
-  const upcoming = events.filter((e) => e.type === "upcoming");
+export default async function UpcomingEventsPage() {
+  const events = await getEvents();
+  // upcoming = events with date in the future
+  const upcoming = events.filter((e) => new Date(e.date) >= new Date());
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-10 md:py-16">
@@ -16,14 +19,9 @@ export default function UpcomingEventsPage() {
               <RiCalendarEventLine /> Upcoming
             </div>
             <h1 className="text-3xl md:text-4xl font-bold text-white">Upcoming Events</h1>
-            <p className="text-gray-500 mt-1.5 text-sm">
-              {upcoming.length} events — register early to secure your spot
-            </p>
+            <p className="text-gray-500 mt-1.5 text-sm">{upcoming.length} events — register early to secure your spot</p>
           </div>
-          <Link
-            href="/events"
-            className="hidden md:flex items-center gap-1 text-sm text-gray-500 hover:text-primary transition-colors mt-2"
-          >
+          <Link href="/events" className="hidden md:flex items-center gap-1 text-sm text-gray-500 hover:text-primary transition-colors mt-2">
             View all events <RiArrowRightLine />
           </Link>
         </div>

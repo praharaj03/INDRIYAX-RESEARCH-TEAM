@@ -1,7 +1,10 @@
+"use client";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { RiCalendarLine, RiMapPinLine, RiArrowRightLine } from "react-icons/ri";
-import { events } from "@/lib/data/index";
+import { getEvents } from "@/services/eventService";
+import type { Event } from "@/types/event";
 
 function daysUntil(dateStr: string) {
   const diff = new Date(dateStr).getTime() - Date.now();
@@ -12,11 +15,18 @@ function daysUntil(dateStr: string) {
   return `in ${days}d`;
 }
 
-const nextEvent = events
-  .filter((e) => e.type === "upcoming")
-  .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
-
 export default function DashboardNextEvent() {
+  const [nextEvent, setNextEvent] = useState<Event | null>(null);
+
+  useEffect(() => {
+    getEvents().then((evs) => {
+      const upcoming = evs
+        .filter((e) => new Date(e.date) >= new Date())
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      setNextEvent(upcoming[0] ?? null);
+    }).catch(console.error);
+  }, []);
+
   if (!nextEvent) return null;
 
   return (
@@ -43,10 +53,8 @@ export default function DashboardNextEvent() {
             {daysUntil(nextEvent.date)}
           </span>
         </div>
-        <Link
-          href={`/admin/events/${nextEvent.id}/edit`}
-          className="mt-3 flex items-center justify-center gap-1.5 w-full text-xs text-gray-400 hover:text-white border border-border hover:border-white/20 py-2 rounded-lg transition-all"
-        >
+        <Link href={`/admin/events/${nextEvent.id}/edit`}
+          className="mt-3 flex items-center justify-center gap-1.5 w-full text-xs text-gray-400 hover:text-white border border-border hover:border-white/20 py-2 rounded-lg transition-all">
           Edit event <RiArrowRightLine size={11} />
         </Link>
       </div>

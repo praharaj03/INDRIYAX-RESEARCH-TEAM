@@ -1,17 +1,20 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
-  content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
+  darkMode: "class",
+  content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./lib/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        primary: "#00D4FF",
-        secondary: "#0099CC",
-        dark: "#080C10",
-        "dark-2": "#0D1117",
-        "dark-3": "#161B22",
-        "dark-4": "#1C2128",
-        border: "#21262D",
+        primary: "var(--color-primary)",
+        secondary: "var(--color-secondary)",
+        dark: "var(--color-bg)",
+        "dark-2": "var(--color-bg-2)",
+        "dark-3": "var(--color-bg-3)",
+        "dark-4": "var(--color-bg-4)",
+        border: "var(--color-border)",
+        "text-base": "var(--color-text)",
+        "text-muted": "var(--color-text-muted)",
       },
       fontFamily: {
         sans: ["-apple-system", "BlinkMacSystemFont", "SF Pro Display", "SF Pro Text", "Helvetica Neue", "Arial", "sans-serif"],

@@ -1,4 +1,7 @@
-import { events } from "@/lib/data/index";
+"use client";
+import { useEffect, useState } from "react";
+import { getEvents } from "@/services/eventService";
+import type { Event } from "@/types/event";
 
 const colors = [
   "bg-primary/20 text-primary",
@@ -16,6 +19,12 @@ function initials(name: string) {
 }
 
 export default function AnalyticsSpeakers() {
+  const [events, setEvents] = useState<Event[]>([]);
+
+  useEffect(() => {
+    getEvents().then(setEvents).catch(console.error);
+  }, []);
+
   return (
     <div className="lg:col-span-3 bg-dark-3 border border-border rounded-xl overflow-hidden">
       <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
@@ -32,9 +41,7 @@ export default function AnalyticsSpeakers() {
               <p className="text-gray-300 text-sm truncate">{e.speaker}</p>
               <p className="text-gray-600 text-xs truncate">{e.title}</p>
             </div>
-            <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium shrink-0 ${
-              e.type === "upcoming" ? "bg-primary/10 text-primary" : "bg-white/5 text-gray-500"
-            }`}>
+            <span className="text-[11px] px-2 py-0.5 rounded-full font-medium shrink-0 bg-primary/10 text-primary">
               {e.type}
             </span>
           </div>

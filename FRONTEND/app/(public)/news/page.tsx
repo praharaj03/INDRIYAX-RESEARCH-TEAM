@@ -1,9 +1,12 @@
-import { news } from "@/lib/data/index";
+export const dynamic = "force-dynamic";
+import { getNews } from "@/services/newsService";
 import NewsCard from "@/components/cards/NewsCard";
 import AnimateIn from "@/components/ui/AnimateIn";
 import { RiNewspaperLine } from "react-icons/ri";
 
-export default function NewsPage() {
+export default async function NewsPage() {
+  const news = await getNews();
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-16">
       <AnimateIn>
@@ -12,9 +15,7 @@ export default function NewsPage() {
             <RiNewspaperLine /> Latest Research
           </div>
           <h1 className="text-4xl font-bold text-white">Medical News</h1>
-          <p className="text-gray-500 mt-2">
-            Stay updated with the latest in optometry and eye care research
-          </p>
+          <p className="text-gray-500 mt-2">Stay updated with the latest in optometry and eye care research</p>
         </div>
       </AnimateIn>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

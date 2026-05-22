@@ -1,35 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFileSync, mkdirSync } from "fs";
-import { join, extname } from "path";
 
-const UPLOAD_DIR = join(process.cwd(), "public", "uploads");
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://api.indriyax.com";
 
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
-    const file = formData.get("file") as File | null;
+    const token = req.headers.get("authorization") ?? "";
 
-    if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
-    }
+    const res = await fetch(`${API_BASE}/api/v1/uploads/image`, {
+      method: "POST",
+      headers: { ...(token ? { Authorization: token } : {}) },
+      body: formData,
+    });
 
-    const allowed = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-    if (!allowed.includes(file.type)) {
-      return NextResponse.json({ error: "Only JPG, PNG, WebP, GIF allowed" }, { status: 400 });
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      return NextResponse.json({ error: "File too large (max 5MB)" }, { status: 400 });
-    }
-
-    mkdirSync(UPLOAD_DIR, { recursive: true });
-
-    const ext = extname(file.name) || ".jpg";
-    const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
-    const bytes = await file.arrayBuffer();
-    writeFileSync(join(UPLOAD_DIR, filename), Buffer.from(bytes));
-
-    return NextResponse.json({ url: `/uploads/${filename}` });
+    const data = await res.json();
+    if (!data.success) return NextResponse.json({ error: data.message }, { status: res.status });
+    return NextResponse.json({ url: data.data.url });
   } catch {
     return NextResponse.json({ error: "Upload failed" }, { status: 500 });
   }

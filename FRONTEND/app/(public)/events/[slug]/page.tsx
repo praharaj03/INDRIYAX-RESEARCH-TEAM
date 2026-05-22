@@ -1,4 +1,5 @@
-import { events } from "@/lib/data/index";
+export const dynamic = "force-dynamic";
+import { getEventBySlug } from "@/services/eventService";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -7,22 +8,18 @@ import EventDetailMeta from "@/components/events/EventDetailMeta";
 import EventDetailActions from "@/components/events/EventDetailActions";
 import { RiArrowLeftLine } from "react-icons/ri";
 
-export function generateStaticParams() {
-  return events.map((e) => ({ slug: e.slug }));
-}
-
-export default function EventDetailPage({ params }: { params: { slug: string } }) {
-  const event = events.find((e) => e.slug === params.slug);
+export default async function EventDetailPage({ params }: { params: { slug: string } }) {
+  const event = await getEventBySlug(params.slug);
   if (!event) notFound();
+
+  const isPast = new Date(event.date) < new Date();
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-16">
       <AnimateIn>
-        <Link
-          href={event.type === "upcoming" ? "/events/upcoming" : "/events/past"}
-          className="inline-flex items-center gap-1.5 text-gray-500 hover:text-primary text-sm mb-8 transition-colors"
-        >
-          <RiArrowLeftLine /> Back to {event.type === "upcoming" ? "Upcoming" : "Past"} Events
+        <Link href={isPast ? "/events/past" : "/events/upcoming"}
+          className="inline-flex items-center gap-1.5 text-gray-500 hover:text-primary text-sm mb-8 transition-colors">
+          <RiArrowLeftLine /> Back to {isPast ? "Past" : "Upcoming"} Events
         </Link>
       </AnimateIn>
 
@@ -34,17 +31,21 @@ export default function EventDetailPage({ params }: { params: { slug: string } }
       </AnimateIn>
 
       <AnimateIn delay={0.1}>
-        <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full border ${
-          event.type === "upcoming"
-            ? "bg-primary/10 text-primary border-primary/30"
-            : "bg-white/5 text-gray-400 border-border"
-        }`}>
-          {event.type === "upcoming" ? "Upcoming Event" : "Past Event"}
-        </span>
+        <div className="flex items-center gap-2 mb-4">
+          <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full border ${isPast ? "bg-white/5 text-gray-400 border-border" : "bg-primary/10 text-primary border-primary/30"}`}>
+            {isPast ? "Past Event" : "Upcoming Event"}
+          </span>
+          <span className="text-xs font-semibold px-3 py-1 rounded-full border bg-white/5 text-gray-400 border-border">
+            {event.type}
+          </span>
+          {event.price > 0 && (
+            <span className="text-xs font-semibold px-3 py-1 rounded-full border bg-primary/10 text-primary border-primary/30">
+              ₹{event.price}
+            </span>
+          )}
+        </div>
 
-        <h1 className="text-3xl md:text-4xl font-bold text-white mt-4 mb-4 leading-tight">
-          {event.title}
-        </h1>
+        <h1 className="text-3xl md:text-4xl font-bold text-white mt-2 mb-4 leading-tight">{event.title}</h1>
 
         <EventDetailMeta event={event} />
 

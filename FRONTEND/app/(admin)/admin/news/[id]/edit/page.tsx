@@ -2,14 +2,14 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
-import { news } from "@/lib/data/index";
+import { apiFetch, getToken } from "@/lib/api";
 import {
   RiArrowLeftLine, RiSaveLine, RiCheckLine, RiDeleteBinLine,
   RiLinkM, RiUploadCloud2Line, RiImageLine, RiCloseLine,
 } from "react-icons/ri";
 
-const inputClass = "w-full bg-dark-4 border border-border text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-gray-700";
-const labelClass = "text-xs text-gray-500 font-medium mb-1.5 block";
+const inputClass = "w-full bg-dark-4 border border-border text-[var(--color-text)] text-sm rounded-xl px-4 py-3 outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-[var(--color-text-muted)]";
+const labelClass = "text-xs text-[var(--color-text-muted)] font-medium mb-1.5 block";
 
 export default function EditNewsPage() {
   const router = useRouter();
@@ -24,9 +24,18 @@ export default function EditNewsPage() {
   const [form, setForm] = useState({ title: "", description: "", link: "", image: "" });
 
   useEffect(() => {
-    // TODO (Backend Dev): Replace with GET /api/admin/news/:id
-    const item = news.find((n) => n.id === id);
-    if (item) setForm({ title: item.title, description: item.description, link: item.link, image: item.image });
+    const token = getToken();
+    apiFetch(`/api/v1/posts/${id}`, {}, token ?? undefined)
+      .then((d) => {
+        const item = d.data;
+        setForm({
+          title: item.title ?? "",
+          description: item.content ?? "",
+          link: item.link ?? "",
+          image: item.coverImage ?? item.image ?? "",
+        });
+      })
+      .catch(console.error);
   }, [id]);
 
   function set(key: string, value: string) {
@@ -56,15 +65,20 @@ export default function EditNewsPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    // TODO (Backend Dev): PATCH /api/admin/news/:id with form payload
-    await new Promise((r) => setTimeout(r, 600));
+    try {
+      const { updatePost } = await import("@/services/newsService");
+      await updatePost(id, { title: form.title, content: form.description });
+      setSuccess(true);
+      setTimeout(() => router.push("/admin/news"), 1500);
+    } catch (err) { console.error(err); }
     setLoading(false);
-    setSuccess(true);
-    setTimeout(() => router.push("/admin/news"), 1500);
   }
 
   async function handleDelete() {
-    // TODO (Backend Dev): DELETE /api/admin/news/:id
+    try {
+      const { deletePost } = await import("@/services/newsService");
+      await deletePost(id);
+    } catch (err) { console.error(err); }
     router.push("/admin/news");
   }
 

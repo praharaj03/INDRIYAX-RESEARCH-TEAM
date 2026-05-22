@@ -1,6 +1,5 @@
 "use client";
-import { useState } from "react";
-import { news as initialNews } from "@/lib/data/index";
+import { useState, useEffect } from "react";
 import type { News } from "@/types/news";
 import Image from "next/image";
 import Link from "next/link";
@@ -8,15 +7,22 @@ import {
   RiAddCircleLine, RiDeleteBinLine, RiEditLine,
   RiExternalLinkLine, RiNewspaperLine,
 } from "react-icons/ri";
+import { getNews, deletePost } from "@/services/newsService";
 
 export default function AdminNewsPage() {
-  const [items, setItems] = useState<News[]>(initialNews);
+  const [items, setItems] = useState<News[]>([]);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  function handleDelete() {
+  useEffect(() => {
+    getNews().then(setItems).catch(console.error);
+  }, []);
+
+  async function handleDelete() {
     if (!deleteId) return;
-    // TODO (Backend Dev): DELETE /api/admin/news/:id
-    setItems((prev) => prev.filter((n) => n.id !== deleteId));
+    try {
+      await deletePost(deleteId);
+      setItems((prev) => prev.filter((n) => n.id !== deleteId));
+    } catch (err) { console.error(err); }
     setDeleteId(null);
   }
 
@@ -42,7 +48,7 @@ export default function AdminNewsPage() {
           <div key={item.id} className="bg-dark-3 border border-border rounded-xl overflow-hidden flex flex-col group">
             {/* Image */}
             <div className="relative h-36 w-full overflow-hidden">
-              <Image src={item.image} alt={item.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+              <Image src={item.image ?? item.coverImage ?? ""} alt={item.title} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
               <div className="absolute inset-0 bg-gradient-to-t from-dark-3/80 to-transparent" />
               <div className="absolute top-2 left-2">
                 <span className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">
@@ -55,7 +61,7 @@ export default function AdminNewsPage() {
             <div className="p-4 flex flex-col gap-3 flex-1">
               <div>
                 <p className="text-white text-sm font-semibold leading-snug line-clamp-2">{item.title}</p>
-                <p className="text-gray-600 text-xs mt-1 line-clamp-2">{item.description}</p>
+                <p className="text-gray-600 text-xs mt-1 line-clamp-2">{item.description ?? item.content?.slice(0, 100)}</p>
               </div>
 
               {/* Actions */}
@@ -67,7 +73,7 @@ export default function AdminNewsPage() {
                   <RiEditLine size={13} /> Edit
                 </Link>
                 <a
-                  href={item.link}
+                  href={item.link ?? "#"}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="ml-auto text-gray-600 hover:text-primary transition-colors"

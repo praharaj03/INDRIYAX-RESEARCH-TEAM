@@ -1,19 +1,32 @@
-// TODO: Install zustand → npm install zustand
-// import { create } from "zustand";
+import { create } from "zustand";
 
-// Example store shape:
-// interface AppStore {
-//   user: User | null;
-//   setUser: (user: User | null) => void;
-//   modalOpen: boolean;
-//   setModalOpen: (open: boolean) => void;
-// }
+interface User {
+  id: string;
+  email: string;
+  fullName?: string;
+  imageUrl?: string;
+  role?: string;
+}
 
-// export const useAppStore = create<AppStore>((set) => ({
-//   user: null,
-//   setUser: (user) => set({ user }),
-//   modalOpen: false,
-//   setModalOpen: (open) => set({ modalOpen: open }),
-// }));
+interface AppStore {
+  user: User | null;
+  token: string | null;
+  setUser: (user: User | null) => void;
+  setToken: (token: string | null) => void;
+  logout: () => void;
+}
 
-export {};
+export const useAppStore = create<AppStore>((set) => ({
+  user: null,
+  token: null,
+  setUser: (user) => set({ user }),
+  setToken: (token) => {
+    if (token) localStorage.setItem("sb_token", token);
+    else localStorage.removeItem("sb_token");
+    set({ token });
+  },
+  logout: () => {
+    localStorage.removeItem("sb_token");
+    set({ user: null, token: null });
+  },
+}));
