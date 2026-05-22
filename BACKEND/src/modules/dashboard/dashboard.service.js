@@ -21,6 +21,10 @@ export const dashboardService = {
     };
   },
 
+  getAnalytics: async () => {
+    return await dashboardRepository.getAnalytics();
+  },
+
   getEventSpecificStats: async (eventId) => {
     const data = await dashboardRepository.getEventDetailsWithStats(eventId);
     if (!data) {

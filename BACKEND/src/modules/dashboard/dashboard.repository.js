@@ -77,5 +77,98 @@ export const dashboardRepository = {
         }
       }
     });
+  },
+
+  // 5. Get Analytics Data
+  getAnalytics: async () => {
+    const now = new Date();
+    
+    const [
+      upcomingEvents,
+      pastEvents,
+      totalPosts,
+      totalUsers,
+      uniqueSpeakers,
+      enrollmentsByEvent,
+      recentEnrollments
+    ] = await Promise.all([
+      // Upcoming events count
+      prisma.event.count({
+        where: { date: { gte: now }, isActive: true }
+      }),
+      
+      // Past events count
+      prisma.event.count({
+        where: { date: { lt: now } }
+      }),
+      
+      // Total posts/news count
+      prisma.post.count(),
+      
+      // Total users
+      prisma.user.count(),
+      
+      // Unique speakers (distinct)
+      prisma.event.findMany({
+        select: { speaker: true },
+        distinct: ['speaker']
+      }),
+      
+      // Enrollments grouped by event
+      prisma.enrollment.groupBy({
+        by: ['eventId', 'status'],
+        _count: { id: true },
+        orderBy: { _count: { id: 'desc' } }
+      }),
+      
+      // Recent enrollments with user and event details
+      prisma.enrollment.findMany({
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: {
+            select: { id: true, fullName: true, email: true, imageUrl: true }
+          },
+          event: {
+            select: { id: true, title: true, date: true, price: true }
+          }
+        }
+      })
+    ]);
+
+    // Get event details for enrollment breakdown
+    const eventIds = [...new Set(enrollmentsByEvent.map(e => e.eventId))];
+    const events = await prisma.event.findMany({
+      where: { id: { in: eventIds } },
+      select: { id: true, title: true, date: true, price: true }
+    });
+
+    // Format enrollments by event
+    const eventEnrollments = events.map(event => {
+      const enrollments = enrollmentsByEvent.filter(e => e.eventId === event.id);
+      const approved = enrollments.find(e => e.status === 'APPROVED')?._count.id || 0;
+      const pending = enrollments.find(e => e.status === 'PENDING')?._count.id || 0;
+      const rejected = enrollments.find(e => e.status === 'REJECTED')?._count.id || 0;
+      
+      return {
+        event,
+        approved,
+        pending,
+        rejected,
+        total: approved + pending + rejected
+      };
+    }).sort((a, b) => b.total - a.total);
+
+    return {
+      metrics: {
+        upcomingEvents,
+        pastEvents,
+        totalPosts,
+        totalUsers,
+        uniqueSpeakers: uniqueSpeakers.length
+      },
+      eventEnrollments,
+      recentEnrollments
+    };
   }
 };

@@ -1,6 +1,23 @@
 import prisma from '../../config/prisma.config.js';
 
 export const paymentRepository = {
+  findAllPayments: async () => {
+    return prisma.payment.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: {
+          select: { id: true, fullName: true, email: true, imageUrl: true }
+        },
+        event: {
+          select: { id: true, title: true, date: true, price: true }
+        },
+        reviewer: {
+          select: { id: true, fullName: true, email: true }
+        }
+      }
+    });
+  },
+
   findEventById: async (eventId) => {
     return prisma.event.findUnique({ where: { id: eventId } });
   },

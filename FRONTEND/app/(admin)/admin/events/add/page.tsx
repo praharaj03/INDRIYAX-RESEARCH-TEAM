@@ -6,7 +6,7 @@ import {
   RiSaveLine, RiArrowLeftLine, RiCheckLine,
   RiLinkM, RiUploadCloud2Line, RiImageLine, RiCloseLine, RiQrCodeLine,
 } from "react-icons/ri";
-import { uploadImage, createEvent } from "@/services/eventService";
+import { createEvent } from "@/services/eventService";
 
 const inputClass = "w-full bg-dark-4 border border-border text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-gray-700";
 const labelClass = "text-xs text-gray-500 font-medium mb-1.5 block";
@@ -42,8 +42,22 @@ export default function AddEventPage() {
     setUploading(true);
     setUploadError("");
     try {
-      const url = await uploadImage(file, "events");
-      set("thumbnail", url);
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("folder", "events");
+      
+      const res = await fetch("/api/admin/upload", {
+        method: "POST",
+        body: fd,
+      });
+      
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Upload failed");
+      }
+      
+      const data = await res.json();
+      set("thumbnail", data.url);
     } catch (err: unknown) {
       setUploadError(err instanceof Error ? err.message : "Upload failed");
     } finally {
@@ -58,8 +72,22 @@ export default function AddEventPage() {
     setQrUploading(true);
     setQrError("");
     try {
-      const url = await uploadImage(file, "payment-qr");
-      set("paymentQrUrl", url);
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("folder", "payment-qr");
+      
+      const res = await fetch("/api/admin/upload", {
+        method: "POST",
+        body: fd,
+      });
+      
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "QR upload failed");
+      }
+      
+      const data = await res.json();
+      set("paymentQrUrl", data.url);
     } catch (err: unknown) {
       setQrError(err instanceof Error ? err.message : "QR upload failed");
     } finally {

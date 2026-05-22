@@ -2,6 +2,20 @@ import { catchAsync } from '../../shared/utils/catchAsync.js';
 import { paymentService } from './payment.service.js';
 
 /**
+ * @desc    Get all payments (admin only)
+ * @route   GET /api/v1/payments
+ * @access  Private (Admins only)
+ */
+export const getAllPayments = catchAsync(async (req, res, next) => {
+  const payments = await paymentService.getAllPayments();
+
+  res.status(200).json({
+    success: true,
+    data: payments
+  });
+});
+
+/**
  * @desc    Submit manual payment & enroll in event
  * @route   POST /api/v1/payments
  * @access  Private (Logged in users only)

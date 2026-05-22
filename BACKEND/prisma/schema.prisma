@@ -118,6 +118,7 @@ model Event {
   type          EventType
   
   price         Int       @default(0) // 0 means free event
+  paymentQrUrl  String?   // UPI QR code for payment (optional, only for paid events)
   restricted    Boolean   @default(false)
   isActive      Boolean   @default(true)
   summary       String?   @db.Text

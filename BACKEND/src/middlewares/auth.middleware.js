@@ -1,47 +1,85 @@
-import jwt from 'jsonwebtoken';
-import { config } from '../config/env.config.js';
-import { UnauthorizedException } from '../shared/exceptions/index.js';
-import prisma from '../config/prisma.config.js';
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+)
 
 export const protect = async (req, res, next) => {
   try {
-    let token;
+    const authHeader = req.headers.authorization
 
-    // 1. Check if token exists in headers
-    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-      token = req.headers.authorization.split(' ')[1];
+    if (!authHeader?.startsWith('Bearer ')) {
+      return res.status(401).json({
+        success: false,
+        message: 'No token provided'
+      })
     }
 
-    if (!token) {
-      return next(new UnauthorizedException('Not authorized to access this route. Please log in.'));
+    const token = authHeader.split(' ')[1]
+
+    // Check if it's an admin API key
+    const adminApiKey = process.env.ADMIN_API_KEY
+    if (adminApiKey && token === adminApiKey) {
+      // Set a mock admin user
+      req.user = {
+        id: 'admin',
+        role: 'ADMIN',
+        email: 'admin@indriyax.com'
+      }
+      return next()
     }
 
-    // 2. Verify token using Supabase JWT Secret
-    const decoded = jwt.verify(token, config.supabase.jwtSecret);
+    console.log('TOKEN RECEIVED:', token.substring(0, 30))
 
-    // 3. Check if user still exists in our database
-    const currentUser = await prisma.user.findUnique({
-      where: { id: decoded.sub }, // Supabase stores the user ID in the 'sub' claim
-    });
+    const { data, error } = await supabase.auth.getUser(token)
 
-    if (!currentUser) {
-      return next(new UnauthorizedException('The user belonging to this token no longer exists.'));
+    console.log('SUPABASE RESPONSE:', { data, error })
+
+    if (error || !data?.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid or expired token.'
+      })
     }
 
-    // 4. Attach user to request object for downstream controllers
-    req.user = currentUser;
-    next();
-  } catch (error) {
-    return next(new UnauthorizedException('Invalid or expired token.'));
+    req.user = data.user
+
+    next()
+  } catch (err) {
+    console.error('AUTH ERROR:', err)
+
+    return res.status(401).json({
+      success: false,
+      message: 'Authentication failed'
+    })
   }
-};
+}
 
-// Middleware to restrict access to specific roles (e.g., ADMIN)
 export const restrictTo = (...roles) => {
   return (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
-      return next(new UnauthorizedException('You do not have permission to perform this action.'));
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Unauthorized'
+      })
     }
-    next();
-  };
-};
+
+    // If no roles provided, allow access
+    if (!roles.length) {
+      return next()
+    }
+
+    // Supabase default role fallback
+    const userRole = req.user.role || 'authenticated'
+
+    if (!roles.includes(userRole)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Forbidden'
+      })
+    }
+
+    next()
+  }
+}

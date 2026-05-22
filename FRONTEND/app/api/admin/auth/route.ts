@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
 import { SignJWT } from "jose";
 
 const RATE_LIMIT = new Map<string, { count: number; resetAt: number }>();
@@ -35,15 +34,15 @@ export async function POST(req: NextRequest) {
   const { username, password } = await req.json();
 
   const validUser = process.env.ADMIN_USERNAME;
-  const hashedPass = process.env.ADMIN_PASSWORD_HASH;
+  const validPass = process.env.ADMIN_PASSWORD;
   const jwtSecret = process.env.ADMIN_JWT_SECRET;
 
-  if (!validUser || !hashedPass || !jwtSecret) {
+  if (!validUser || !validPass || !jwtSecret) {
     return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
   }
 
   const usernameMatch = username === validUser;
-  const passwordMatch = await bcrypt.compare(password, hashedPass);
+  const passwordMatch = password === validPass;
 
   if (!usernameMatch || !passwordMatch) {
     // Constant-time delay to prevent timing attacks

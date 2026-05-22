@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://api.indriyax.com";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 async function verifyAdminSession(req: NextRequest): Promise<boolean> {
   const token = req.cookies.get("admin_session")?.value;
@@ -18,7 +18,7 @@ async function verifyAdminSession(req: NextRequest): Promise<boolean> {
   }
 }
 
-export async function POST(req: NextRequest) {
+export async function GET(req: NextRequest) {
   const isAdmin = await verifyAdminSession(req);
   
   if (!isAdmin) {
@@ -26,27 +26,25 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const formData = await req.formData();
-    
-    // Use admin API key to authenticate with backend
     const adminApiKey = process.env.ADMIN_API_KEY;
     if (!adminApiKey) {
       return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
     }
 
-    const res = await fetch(`${API_BASE}/api/v1/uploads/image`, {
-      method: "POST",
+    const response = await fetch(`${API_BASE}/api/v1/dashboard/analytics`, {
       headers: {
         "Authorization": `Bearer ${adminApiKey}`,
+        "Content-Type": "application/json",
       },
-      body: formData,
     });
 
-    const data = await res.json();
-    if (!data.success) return NextResponse.json({ error: data.message }, { status: res.status });
-    return NextResponse.json({ url: data.data.url });
+    const data = await response.json();
+    return NextResponse.json(data);
   } catch (error) {
-    console.error("Upload error:", error);
-    return NextResponse.json({ error: "Upload failed" }, { status: 500 });
+    console.error("Analytics API error:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch analytics data" },
+      { status: 500 }
+    );
   }
 }

@@ -2,6 +2,10 @@ import { paymentRepository } from './payment.repository.js';
 import { NotFoundException, ConflictException } from '../../shared/exceptions/index.js';
 
 export const paymentService = {
+  getAllPayments: async () => {
+    return paymentRepository.findAllPayments();
+  },
+
   processNewPayment: async (userId, payload) => {
     // 1. Verify Event
     const event = await paymentRepository.findEventById(payload.eventId);
