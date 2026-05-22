@@ -58,11 +58,14 @@ sequenceDiagram
 
 ### Phase 1: User Submission
 
-1. **QR Code Scan** — The user views the event details on the frontend. The frontend displays the organization's static UPI QR code.
+1. **QR Code Scan** — The user views the event details on the frontend. The frontend displays the specific UPI QR Code, UPI ID, and Price associated with that exact event (fetched from the Event database record).
 2. **Payment** — The user pays using their preferred UPI app (GPay, PhonePe, etc.) on their phone.
 3. **Form Submission** — The user receives a 12-digit UTR (Transaction ID) from their app. They enter this UTR and upload an optional screenshot of the success screen.
 4. **API Call** — The frontend sends a `POST /api/v1/payments` request containing the `eventId`, `utr`, `amount`, and `screenshotUrl`.
-5. **Database Transaction** — The Express backend intercepts this request. To prevent corrupted data, it opens a Prisma Transaction:
+5. **Backend Business Validation** — Before processing, the API verifies two things:
+   - That the event is actually a paid event (if `isFree: true`, it rejects with a `400` error).
+   - That the `amount` submitted by the user is greater than or equal to the event's `price`.
+6. **Database Transaction** — If validations pass, the Express backend opens a Prisma Transaction:
    - It creates a `Payment` record with `status: PENDING`.
    - It creates an `Enrollment` record with `status: PENDING`.
    - If either creation fails, both are rolled back automatically.

@@ -117,7 +117,14 @@ model Event {
   venue         String
   type          EventType
   
+  // --- NEW PAYMENT FIELDS ---
+  isFree        Boolean   @default(true)
   price         Int       @default(0) // 0 means free event
+  qrCodeUrl     String?   
+  upiId         String?   
+  upiNumber     String?   
+  // --------------------------
+
   restricted    Boolean   @default(false)
   isActive      Boolean   @default(true)
   summary       String?   @db.Text
@@ -133,31 +140,33 @@ model Event {
 
   @@index([slug])
   @@index([date])
+  @@index([isActive, date]) // NEW: Optimizes fetching only active events
 }
 
 // NEW: Replaces the Subscription model
 model Enrollment {
-  id          String           @id @default(cuid())
-  userId      String
-  eventId     String
-  status      EnrollmentStatus @default(PENDING)
+  id            String           @id @default(cuid())
+  userId        String
+  eventId       String
+  status        EnrollmentStatus @default(PENDING)
 
-  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  event       Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event         Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 
   // Ensures a user cannot buy two tickets for the exact same event
   @@unique([userId, eventId]) 
   @@index([userId])
   @@index([eventId])
+  @@index([status, createdAt]) // NEW: Optimizes Dashboard monthly engagement query
 }
 
 model Payment {
   id              String        @id @default(cuid())
   userId          String
-  eventId         String        // Replaced 'plan' with 'eventId'
+  eventId         String        
   amount          Int           
   
   // Manual Verification Data
@@ -183,4 +192,5 @@ model Payment {
   @@index([eventId])
   @@index([utr])
   @@index([status])
+  @@index([eventId, status]) // NEW: Optimizes Dashboard revenue aggregations
 }

@@ -57,6 +57,13 @@ All **error** responses (`400`, `401`, `403`, `404`, `500`) follow this structur
 | `utr`           | `string` | Yes      | Unique Transaction Reference number from the payment              |
 | `screenshotUrl` | `string` | Yes      | Publicly accessible URL of the payment confirmation screenshot    |
 
+#### Business Validation Rules
+
+The API enforces the following rules before creating a `PENDING` payment:
+
+- **Free Events Check:** If the requested event has `isFree: true`, the API returns a `400 Bad Request` with the message `"This is a free event. No payment is required."`.
+- **Minimum Amount Check:** The `amount` provided in the payload must be greater than or equal to the event's `price`. If the user attempts to underpay, the API returns a `400 Bad Request`.
+
 #### Response
 
 ```json

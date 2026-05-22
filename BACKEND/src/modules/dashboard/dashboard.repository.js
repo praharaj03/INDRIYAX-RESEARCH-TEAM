@@ -43,6 +43,7 @@ export const dashboardRepository = {
       select: {
         id: true,
         title: true,
+        isFree: true, 
         price: true,
         date: true,
         isActive: true,

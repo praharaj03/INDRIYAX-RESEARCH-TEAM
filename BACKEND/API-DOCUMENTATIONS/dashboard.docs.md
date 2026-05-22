@@ -105,6 +105,7 @@ All **error** responses (`400`, `401`, `403`, `404`, `500`) follow this structur
     "eventInfo": {
       "id": "cuid-event-id",
       "title": "React Advanced Workshop",
+      "isFree": false,
       "price": 500,
       "date": "2026-06-01T10:00:00.000Z",
       "isActive": true
@@ -133,13 +134,14 @@ All **error** responses (`400`, `401`, `403`, `404`, `500`) follow this structur
 
 #### `eventInfo` Field Reference
 
-| Field      | Type      | Description                                      |
-|------------|-----------|--------------------------------------------------|
-| `id`       | `string`  | Unique event identifier (CUID)                   |
-| `title`    | `string`  | Event title                                      |
-| `price`    | `number`  | Ticket price in currency units                   |
-| `date`     | `string`  | ISO 8601 datetime of the event                   |
-| `isActive` | `boolean` | Whether the event is publicly visible            |
+| Field      | Type      | Description                                                        |
+|------------|-----------|--------------------------------------------------------------------|
+| `id`       | `string`  | Unique event identifier (CUID)                                     |
+| `title`    | `string`  | Event title                                                        |
+| `isFree`   | `boolean` | Indicates if the event requires payment                            |
+| `price`    | `number`  | Ticket price in currency units (will be `0` if `isFree` is `true`) |
+| `date`     | `string`  | ISO 8601 datetime of the event                                     |
+| `isActive` | `boolean` | Whether the event is publicly visible                              |
 
 #### `stats` Field Reference
 
@@ -152,13 +154,13 @@ All **error** responses (`400`, `401`, `403`, `404`, `500`) follow this structur
 
 #### `participants` Array — Item Field Reference
 
-| Field                  | Type     | Description                                              |
-|------------------------|----------|----------------------------------------------------------|
-| `enrollmentId`         | `string` | Unique enrollment identifier (CUID)                      |
-| `enrolledAt`           | `string` | ISO 8601 timestamp of when the enrollment was approved   |
-| `user.id`              | `string` | Unique user identifier (UUID)                            |
-| `user.fullName`        | `string` | Participant's full name                                  |
-| `user.email`           | `string` | Participant's registered email address                   |
-| `user.imageUrl`        | `string` | URL to the participant's profile picture                 |
+| Field           | Type     | Description                                              |
+|-----------------|----------|----------------------------------------------------------|
+| `enrollmentId`  | `string` | Unique enrollment identifier (CUID)                      |
+| `enrolledAt`    | `string` | ISO 8601 timestamp of when the enrollment was approved   |
+| `user.id`       | `string` | Unique user identifier (UUID)                            |
+| `user.fullName` | `string` | Participant's full name                                  |
+| `user.email`    | `string` | Participant's registered email address                   |
+| `user.imageUrl` | `string` | URL to the participant's profile picture                 |
 
 > Only enrollments with an `APPROVED` status are included in the `participants` array. Pending and rejected entries are counted in `stats` but are not listed here.

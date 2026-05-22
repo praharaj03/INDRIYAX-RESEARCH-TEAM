@@ -104,23 +104,33 @@ All **error** responses (`400`, `401`, `403`, `404`, `500`) follow this structur
   "thumbnail": "https://...",
   "venue": "Tech Park",
   "type": "OFFLINE",
+  "date": "2026-06-01T10:00:00.000Z",
+  "isFree": false,
   "price": 500,
-  "date": "2026-06-01T10:00:00.000Z"
+  "qrCodeUrl": "https://...",
+  "upiId": "indriyax@ybl",
+  "upiNumber": "9876543210"
 }
 ```
 
 #### Payload Fields
 
-| Field         | Type     | Required | Description                              |
-|---------------|----------|----------|------------------------------------------|
-| `title`       | `string` | Yes      | Event title                              |
-| `description` | `string` | Yes      | Full description of the event            |
-| `speaker`     | `string` | Yes      | Name of the speaker(s)                   |
-| `thumbnail`   | `string` | Yes      | URL to the event thumbnail image         |
-| `venue`       | `string` | Yes      | Physical or virtual venue name           |
-| `type`        | `string` | Yes      | Event type — `OFFLINE` or `ONLINE`       |
-| `price`       | `number` | Yes      | Ticket price (use `0` for free events)   |
-| `date`        | `string` | Yes      | ISO 8601 datetime for the event          |
+| Field         | Type      | Required        | Description                                                                 |
+|---------------|-----------|-----------------|-----------------------------------------------------------------------------|
+| `title`       | `string`  | Yes             | Event title                                                                 |
+| `description` | `string`  | Yes             | Full description of the event                                               |
+| `speaker`     | `string`  | Yes             | Name of the speaker(s)                                                      |
+| `thumbnail`   | `string`  | Yes             | URL to the event thumbnail image                                            |
+| `venue`       | `string`  | Yes             | Physical or virtual venue name                                              |
+| `type`        | `string`  | Yes             | Event type — `OFFLINE` or `ONLINE`                                          |
+| `date`        | `string`  | Yes             | ISO 8601 datetime for the event                                             |
+| `isFree`      | `boolean` | No              | Defaults to `true`. If `false`, the payment fields below are required.      |
+| `price`       | `number`  | Conditional     | Required if `isFree=false`. Must be greater than `0`.                       |
+| `qrCodeUrl`   | `string`  | Conditional     | Required if `isFree=false`. URL of the bank QR image.                       |
+| `upiId`       | `string`  | Conditional     | Required if `isFree=false`. Admin's receiving UPI ID.                       |
+| `upiNumber`   | `string`  | No              | Optional contact number linked to the UPI account.                          |
+
+> **Validation Note:** If `isFree` is set to `false`, the API will return a `400 Validation Error` unless `price`, `qrCodeUrl`, and `upiId` are all provided.
 
 #### Response
 
@@ -152,7 +162,7 @@ All **error** responses (`400`, `401`, `403`, `404`, `500`) follow this structur
 |-----------|----------|----------------------|
 | `id`      | `string` | CUID of the event    |
 
-> Send only the fields you wish to update in the request body. All fields from the **Create Event** payload are accepted.
+> Send only the fields you wish to update in the request body. All fields from the **Create Event** payload are accepted, including `isFree`, `price`, `qrCodeUrl`, `upiId`, and `upiNumber`. Conditional validation rules apply the same way.
 
 ---
 
