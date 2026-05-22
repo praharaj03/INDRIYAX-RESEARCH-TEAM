@@ -6,6 +6,7 @@ import eventRoutes from '../modules/events/event.routes.js';
 import postRoutes from '../modules/posts/post.routes.js';
 import uploadRoutes from '../modules/uploads/upload.routes.js';
 import commentRoutes from '../modules/comments/comment.routes.js';
+import dashboardRoutes from '../modules/dashboard/dashboard.routes.js';
 
 const router = Router();
 
@@ -23,5 +24,6 @@ router.use('/events', eventRoutes);
 router.use('/posts', postRoutes);
 router.use('/uploads', uploadRoutes);
 router.use('/comments', commentRoutes);
+router.use('/dashboard', dashboardRoutes);
 
 export default router;
