@@ -4,7 +4,7 @@ import Link from "next/link";
 import {
   RiPlayCircleLine, RiTimeLine, RiMoneyDollarCircleLine,
   RiCalendarCheckLine, RiVideoLine, RiLoader4Line,
-  RiCheckboxCircleLine, RiTimeLine as RiClockLine,
+  RiCheckboxCircleLine,
 } from "react-icons/ri";
 import type { Event } from "@/types/event";
 import { getSession } from "@/services/authService";
@@ -94,7 +94,7 @@ export default function EventDetailActions({ event }: { event: Event }) {
     if (enrollment.status === "PENDING") {
       return (
         <div className="inline-flex items-center gap-2 bg-amber-500/10 text-amber-400 border border-amber-500/20 text-sm font-medium px-4 py-2.5 rounded-xl">
-          <RiClockLine size={16} /> Payment under review
+          <RiTimeLine size={16} /> Payment under review
         </div>
       );
     }
