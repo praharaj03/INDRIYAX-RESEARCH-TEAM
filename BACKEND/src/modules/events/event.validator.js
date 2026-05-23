@@ -44,13 +44,32 @@ export const createEventSchema = z.object({
 
     isActive: z
       .boolean()
-      .default(true)
+      .default(true),
+
+    summary: z
+      .string()
+      .optional(),
+
+    recordingLink: z
+      .string()
+      .url("Must be a valid URL")
+      .optional(),
+
+    paymentQrUrl: z
+      .string()
+      .url("Must be a valid URL")
+      .optional(),
+
+    meetingLink: z
+      .string()
+      .url("Must be a valid URL")
+      .optional(),
   })
 });
 
 export const updateEventSchema = z.object({
   params: z.object({
-    id: z.string().cuid("Invalid Event ID format")
+    id: z.string().min(1, "Invalid Event ID")
   }),
 
   body: z.object({
@@ -105,6 +124,16 @@ export const updateEventSchema = z.object({
     recordingLink: z
       .string()
       .url()
-      .optional()
+      .optional(),
+
+    paymentQrUrl: z
+      .string()
+      .url()
+      .optional(),
+
+    meetingLink: z
+      .string()
+      .url()
+      .optional(),
   })
 });

@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
 import { siteConfig } from "@/config/site";
 import { ThemeProvider } from "@/components/ui/ThemeProvider";
+import LayoutShell from "@/components/layout/LayoutShell";
 
 export const metadata: Metadata = {
   title: {
@@ -46,9 +45,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <ThemeProvider>
-          <Navbar />
-          <main className="min-h-screen">{children}</main>
-          <Footer />
+          <LayoutShell>{children}</LayoutShell>
         </ThemeProvider>
       </body>
     </html>

@@ -48,11 +48,11 @@ export default function HeroSection() {
               <RiArrowRightLine size={14} className="group-hover:translate-x-1 transition-transform" />
             </Link>
             <Link
-              href="/subscribe"
+              href="/events"
               className="group flex items-center gap-2 border border-border text-gray-300 font-semibold px-5 py-3 md:px-7 md:py-3.5 rounded-xl hover:border-primary/40 hover:text-white hover:bg-white/[0.04] transition-all text-sm md:text-base"
             >
               <RiPlayCircleLine size={16} className="text-primary" />
-              View Plans
+              Browse Events
             </Link>
           </div>
         </AnimateIn>

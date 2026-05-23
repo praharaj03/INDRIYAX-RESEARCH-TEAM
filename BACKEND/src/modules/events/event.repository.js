@@ -1,12 +1,13 @@
-import prisma from '../../config/prisma.config.js';
+import { getDb } from '../../config/prisma.config.js';
 
 export const eventRepository = {
   create: async (data) => {
+    const prisma = getDb();
     return prisma.event.create({ data });
   },
 
   findAll: async (filters = {}) => {
-    // Allows us to fetch all events, or just active ones
+    const prisma = getDb();
     return prisma.event.findMany({
       where: filters,
       orderBy: { date: 'asc' }
@@ -14,19 +15,20 @@ export const eventRepository = {
   },
 
   findBySlug: async (slug) => {
+    const prisma = getDb();
     return prisma.event.findUnique({
       where: { slug },
-      include: {
-        // Optionally include basic enrollment counts or similar if needed later
-      }
+      include: {}
     });
   },
 
   findById: async (id) => {
+    const prisma = getDb();
     return prisma.event.findUnique({ where: { id } });
   },
 
   update: async (id, data) => {
+    const prisma = getDb();
     return prisma.event.update({
       where: { id },
       data
@@ -34,6 +36,7 @@ export const eventRepository = {
   },
 
   delete: async (id) => {
+    const prisma = getDb();
     return prisma.event.delete({
       where: { id }
     });

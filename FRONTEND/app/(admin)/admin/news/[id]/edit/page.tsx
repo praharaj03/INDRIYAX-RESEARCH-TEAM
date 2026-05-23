@@ -27,7 +27,7 @@ export default function EditNewsPage() {
     const token = getToken();
     apiFetch(`/api/v1/posts/${id}`, {}, token ?? undefined)
       .then((d) => {
-        const item = d.data;
+        const item = d.data as Record<string, string | null>;
         setForm({
           title: item.title ?? "",
           description: item.content ?? "",

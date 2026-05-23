@@ -35,20 +35,20 @@ export default function EditEventPage() {
       try {
         const token = getToken();
         const data = await apiFetch(`/api/v1/events/${id}`, {}, token ?? undefined);
-        const ev = data.data;
+        const ev = data.data as Record<string, string | number | boolean | null>;
         setForm({
-          title: ev.title ?? "",
-          type: ev.type ?? "OFFLINE",
-          date: ev.date ? ev.date.slice(0, 16) : "",
-          venue: ev.venue ?? "",
-          speaker: ev.speaker ?? "",
-          description: ev.description ?? "",
-          thumbnail: ev.thumbnail ?? "",
-          summary: ev.summary ?? "",
-          recordingLink: ev.recordingLink ?? "",
+          title: String(ev.title ?? ""),
+          type: (String(ev.type ?? "OFFLINE")) as "OFFLINE" | "ONLINE",
+          date: ev.date ? String(ev.date).slice(0, 16) : "",
+          venue: String(ev.venue ?? ""),
+          speaker: String(ev.speaker ?? ""),
+          description: String(ev.description ?? ""),
+          thumbnail: String(ev.thumbnail ?? ""),
+          summary: String(ev.summary ?? ""),
+          recordingLink: String(ev.recordingLink ?? ""),
           price: String(ev.price ?? 0),
-          restricted: ev.restricted ?? false,
-          isActive: ev.isActive ?? true,
+          restricted: Boolean(ev.restricted ?? false),
+          isActive: Boolean(ev.isActive ?? true),
         });
       } catch (err) { console.error(err); }
     }

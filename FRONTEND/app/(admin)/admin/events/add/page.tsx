@@ -112,6 +112,7 @@ export default function AddEventPage() {
         date: new Date(form.date).toISOString(),
         ...(form.summary ? { summary: form.summary } : {}),
         ...(form.recordingLink ? { recordingLink: form.recordingLink } : {}),
+        ...(form.paymentQrUrl ? { paymentQrUrl: form.paymentQrUrl } : {}),
       });
       setSuccess(true);
       setTimeout(() => router.push("/admin/events"), 1500);
@@ -253,8 +254,8 @@ export default function AddEventPage() {
 
         {/* Description */}
         <div>
-          <label className={labelClass}>Description *</label>
-          <textarea required rows={3} className={inputClass} placeholder="Brief description of the event..." value={form.description} onChange={(e) => set("description", e.target.value)} />
+          <label className={labelClass}>Description * <span className="text-gray-600 font-normal">(min 10 chars)</span></label>
+          <textarea required minLength={10} rows={3} className={inputClass} placeholder="Brief description of the event (at least 10 characters)..." value={form.description} onChange={(e) => set("description", e.target.value)} />
         </div>
 
         {/* Optional fields */}

@@ -55,7 +55,6 @@ export default function Footer() {
               { href: "/events/upcoming", label: "Upcoming Events" },
               { href: "/events/past",     label: "Past Events" },
               { href: "/news",            label: "Medical News" },
-              { href: "/subscribe",       label: "Pricing" },
               { href: "/about",           label: "About Us" },
               { href: "/signup",          label: "Sign Up" },
               { href: "/contact",         label: "Contact" },

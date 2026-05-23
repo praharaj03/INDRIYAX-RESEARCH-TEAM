@@ -1,8 +1,8 @@
-import prisma from '../../config/prisma.config.js';
+import { getDb } from '../../config/prisma.config.js';
 
 export const authRepository = {
   updateUserById: async (userId, data) => {
-    return prisma.user.update({
+    const db = getDb(); return db.user.update({
       where: { id: userId },
       data: {
         fullName: data.fullName,

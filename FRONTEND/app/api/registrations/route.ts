@@ -1,22 +1,37 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-// TODO (Backend Dev):
-// 1. Install @clerk/nextjs and add keys to .env.local
-// 2. Use auth() from @clerk/nextjs/server to get userId
-// 3. Connect MongoDB RegistrationModel
-// import { auth } from "@clerk/nextjs/server";
-// import { connectDB } from "@/config/db";
-// import { RegistrationModel } from "@/lib/models/Registration";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
-export async function GET() {
-  return NextResponse.json(
-    { message: "TODO: connect Clerk + MongoDB" },
-    { status: 501 },
-  );
+// GET /api/registrations - Get user's enrollments
+export async function GET(req: NextRequest) {
+  const token = req.headers.get("authorization") ?? "";
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/payments/my`, {
+      headers: { ...(token ? { Authorization: token } : {}) },
+    });
+    const data = await res.json();
+    return NextResponse.json(data, { status: res.status });
+  } catch (error) {
+    return NextResponse.json({ success: false, message: "Backend unreachable" }, { status: 502 });
+  }
 }
-export async function POST() {
-  return NextResponse.json(
-    { message: "TODO: connect Clerk + MongoDB" },
-    { status: 501 },
-  );
+
+// POST /api/registrations - Submit payment for event enrollment  
+export async function POST(req: NextRequest) {
+  const token = req.headers.get("authorization") ?? "";
+  const body = await req.json();
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/payments`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: token } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    return NextResponse.json(data, { status: res.status });
+  } catch (error) {
+    return NextResponse.json({ success: false, message: "Backend unreachable" }, { status: 502 });
+  }
 }

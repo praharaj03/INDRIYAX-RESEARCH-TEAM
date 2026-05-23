@@ -1,36 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// TODO (Backend Dev): Wire to MongoDB NewsModel
-//
-// GET  /api/admin/news
-//   - Return all news articles (including hidden ones for admin view)
-//   - Sort by createdAt descending
-//   - Response: News[]
-//
-// POST /api/admin/news
-//   - Create a new news article
-//   - Body: { title, description, link, image }
-//   - Validate all fields are present
-//   - Return the created document
-//
-// import { connectDB } from "@/config/db";
-// import { NewsModel } from "@/lib/models/News";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
-export async function GET() {
-  // await connectDB();
-  // const news = await NewsModel.find().sort({ createdAt: -1 });
-  // return NextResponse.json(news);
-  return NextResponse.json({ message: "TODO (Backend Dev): implement GET /api/admin/news" }, { status: 501 });
+export async function GET(req: NextRequest) {
+  const token = req.headers.get("authorization") ?? "";
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/posts`, {
+      headers: { ...(token ? { Authorization: token } : {}) },
+    });
+    const data = await res.json();
+    return NextResponse.json(data, { status: res.status });
+  } catch (error) {
+    return NextResponse.json({ success: false, message: "Backend unreachable" }, { status: 502 });
+  }
 }
 
 export async function POST(req: NextRequest) {
-  // await connectDB();
-  // const body = await req.json();
-  // const { title, description, link, image } = body;
-  // if (!title || !description || !link || !image) {
-  //   return NextResponse.json({ error: "All fields required" }, { status: 400 });
-  // }
-  // const news = await NewsModel.create({ title, description, link, image });
-  // return NextResponse.json(news, { status: 201 });
-  return NextResponse.json({ message: "TODO (Backend Dev): implement POST /api/admin/news" }, { status: 501 });
+  const token = req.headers.get("authorization") ?? "";
+  const body = await req.json();
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/posts`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: token } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    return NextResponse.json(data, { status: res.status });
+  } catch (error) {
+    return NextResponse.json({ success: false, message: "Backend unreachable" }, { status: 502 });
+  }
 }

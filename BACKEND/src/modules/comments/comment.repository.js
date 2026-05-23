@@ -1,8 +1,8 @@
-import prisma from '../../config/prisma.config.js';
+import { getDb } from '../../config/prisma.config.js';
 
 export const commentRepository = {
   create: async (data) => {
-    return prisma.comment.create({ 
+    const db = getDb(); return db.comment.create({ 
       data,
       include: {
         user: { select: { fullName: true, imageUrl: true } } // Return user data immediately upon creation
@@ -11,7 +11,7 @@ export const commentRepository = {
   },
 
   findByPostId: async (postId) => {
-    return prisma.comment.findMany({
+    const db = getDb(); return db.comment.findMany({
       where: { postId },
       orderBy: { createdAt: 'desc' }, // Newest comments first
       include: {
@@ -21,11 +21,11 @@ export const commentRepository = {
   },
 
   findById: async (id) => {
-    return prisma.comment.findUnique({ where: { id } });
+    const db = getDb(); return db.comment.findUnique({ where: { id } });
   },
 
   update: async (id, content) => {
-    return prisma.comment.update({
+    const db = getDb(); return db.comment.update({
       where: { id },
       data: { content },
       include: {
@@ -35,7 +35,7 @@ export const commentRepository = {
   },
 
   delete: async (id) => {
-    return prisma.comment.delete({
+    const db = getDb(); return db.comment.delete({
       where: { id }
     });
   }

@@ -79,8 +79,8 @@ export default function AnalyticsSubscriptions() {
         <p className="text-gray-600 text-xs">
           Connect <code className="text-gray-500 bg-dark-4 px-1.5 py-0.5 rounded text-[11px]">SubscriptionModel</code> to see real data.
         </p>
-        <a href="/subscribe" target="_blank" className="text-xs text-primary hover:underline shrink-0 ml-4">
-          View plans →
+        <a href="/events" target="_blank" className="text-xs text-primary hover:underline shrink-0 ml-4">
+          View events →
         </a>
       </div>
     </div>

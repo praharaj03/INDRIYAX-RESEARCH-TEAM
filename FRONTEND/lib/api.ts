@@ -1,12 +1,27 @@
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ||
-  (typeof window !== "undefined" ? "" : "https://api.indriyax.com");
+/**
+ * API client utility
+ * 
+ * On the client (browser): requests go to the Next.js server at the same origin,
+ * which then proxies to the Express backend via /api/v1/[...path]/route.ts
+ * 
+ * On the server (SSR): requests go directly to the backend URL
+ */
+
+function getBaseUrl(): string {
+  if (typeof window !== "undefined") {
+    // Client-side: use relative URLs (handled by Next.js proxy)
+    return "";
+  }
+  // Server-side: call backend directly
+  return process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+}
 
 export async function apiFetch(
   path: string,
   options: RequestInit = {},
   token?: string
-) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any> {
   const headers: Record<string, string> = {
     ...(options.headers as Record<string, string>),
   };
@@ -19,12 +34,13 @@ export async function apiFetch(
     headers["Content-Type"] = "application/json";
   }
 
-  const res = await fetch(`${API_BASE}${path}`, {
+  const baseUrl = getBaseUrl();
+  const res = await fetch(`${baseUrl}${path}`, {
     ...options,
     headers,
   });
 
-  let data: any = {};
+  let data: Record<string, unknown> = {};
 
   try {
     data = await res.json();
@@ -35,16 +51,15 @@ export async function apiFetch(
   // Handle unauthorized separately
   if (res.status === 401) {
     console.warn("Unauthorized request");
-
     return {
       success: false,
-      message: data.message || "Unauthorized",
+      message: (data.message as string) || "Unauthorized",
       unauthorized: true,
     };
   }
 
   if (!res.ok || data.success === false) {
-    throw new Error(data.message || "API error");
+    throw new Error((data.message as string) || "API error");
   }
 
   return data;

@@ -2,7 +2,7 @@ export interface Event {
   id: string;
   slug: string;
   title: string;
-  type: "OFFLINE" | "ONLINE";
+  type: "OFFLINE" | "ONLINE" | "HYBRID";
   thumbnail: string;
   description: string;
   speaker: string;
@@ -13,4 +13,6 @@ export interface Event {
   isActive?: boolean;
   summary?: string;
   recordingLink?: string;
+  paymentQrUrl?: string;
+  meetingLink?: string;
 }

@@ -1,12 +1,12 @@
-import prisma from '../../config/prisma.config.js';
+import { getDb } from '../../config/prisma.config.js';
 
 export const postRepository = {
   create: async (data) => {
-    return prisma.post.create({ data });
+    const db = getDb(); return db.post.create({ data });
   },
 
   findAll: async (filters = {}) => {
-    return prisma.post.findMany({
+    const db = getDb(); return db.post.findMany({
       where: filters,
       orderBy: { createdAt: 'desc' }, // Newest posts first
       include: {
@@ -16,7 +16,7 @@ export const postRepository = {
   },
 
   findBySlug: async (slug) => {
-    return prisma.post.findUnique({
+    const db = getDb(); return db.post.findUnique({
       where: { slug },
       include: {
         author: { select: { fullName: true, imageUrl: true, role: true } }
@@ -25,18 +25,18 @@ export const postRepository = {
   },
 
   findById: async (id) => {
-    return prisma.post.findUnique({ where: { id } });
+    const db = getDb(); return db.post.findUnique({ where: { id } });
   },
 
   update: async (id, data) => {
-    return prisma.post.update({
+    const db = getDb(); return db.post.update({
       where: { id },
       data
     });
   },
 
   delete: async (id) => {
-    return prisma.post.delete({
+    const db = getDb(); return db.post.delete({
       where: { id }
     });
   }

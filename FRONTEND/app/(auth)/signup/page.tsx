@@ -5,17 +5,11 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   RiMailLine, RiLockPasswordLine, RiEyeLine, RiEyeOffLine,
-  RiUserLine, RiArrowRightLine, RiShieldLine, RiFlashlightLine, RiVipCrownLine,
+  RiUserLine, RiArrowRightLine, RiShieldUserLine,
 } from "react-icons/ri";
 import { signUp } from "@/services/authService";
 import { apiFetch } from "@/lib/api";
 import { useAppStore } from "@/store";
-
-const plans = [
-  { id: "free",  label: "Free",  price: "₹0",       icon: RiShieldLine,    color: "border-border text-[var(--color-text-muted)]" },
-  { id: "pro",   label: "Pro",   price: "₹199/mo",  icon: RiFlashlightLine, color: "border-primary/40 text-primary" },
-  { id: "elite", label: "Elite", price: "₹1,499/yr", icon: RiVipCrownLine,  color: "border-amber-500/40 text-amber-400" },
-];
 
 const inputClass = "w-full bg-dark-4 border border-border text-[var(--color-text)] text-sm rounded-xl pl-9 pr-4 py-3 outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-[var(--color-text-muted)]";
 
@@ -23,10 +17,10 @@ function SignupForm() {
   const router = useRouter();
   const { setUser, setToken } = useAppStore();
   const params = useSearchParams();
-  const defaultPlan = params.get("plan") ?? "free";
+  const defaultRole = params.get("role") ?? "user";
 
   const [showPass, setShowPass] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState(defaultPlan);
+  const [role, setRole] = useState<"user" | "admin">(defaultRole === "admin" ? "admin" : "user");
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -42,10 +36,9 @@ function SignupForm() {
         setToken(token);
         try {
           const profile = await apiFetch("/api/v1/auth/me", {}, token);
-          setUser(profile.data);
+          setUser(profile.data as { id: string; email: string; fullName?: string; imageUrl?: string; role?: string } | null);
         } catch { /* profile sync happens on backend */ }
       }
-      // Auto-login: redirect to dashboard immediately after signup
       router.push("/dashboard");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Sign up failed");
@@ -55,65 +48,101 @@ function SignupForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <div>
-        <label className="text-xs text-[var(--color-text-muted)] font-medium mb-2 block">Choose your plan</label>
-        <div className="grid grid-cols-3 gap-2">
-          {plans.map(({ id, label, price, icon: Icon, color }) => (
-            <button key={id} type="button" onClick={() => setSelectedPlan(id)}
-              className={`flex flex-col items-center gap-1 py-2.5 px-2 rounded-xl border text-xs font-medium transition-all ${
-                selectedPlan === id ? `${color} bg-primary/5` : "border-border text-[var(--color-text-muted)] hover:border-primary/30"
-              }`}>
-              <Icon size={14} />
-              <span>{label}</span>
-              <span className="text-[10px] opacity-70">{price}</span>
-            </button>
-          ))}
-        </div>
+    <div className="flex flex-col gap-4">
+      {/* Role Toggle */}
+      <div className="flex gap-1 p-1 bg-dark-4 border border-border rounded-xl">
+        <button
+          type="button"
+          onClick={() => { setRole("user"); setError(""); }}
+          className={`flex-1 flex items-center justify-center gap-2 text-sm font-medium py-2.5 rounded-lg transition-all ${
+            role === "user"
+              ? "bg-primary/10 text-primary border border-primary/20 shadow-sm"
+              : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+          }`}
+        >
+          <RiUserLine size={15} /> User
+        </button>
+        <button
+          type="button"
+          onClick={() => { setRole("admin"); setError(""); }}
+          className={`flex-1 flex items-center justify-center gap-2 text-sm font-medium py-2.5 rounded-lg transition-all ${
+            role === "admin"
+              ? "bg-amber-500/10 text-amber-400 border border-amber-500/20 shadow-sm"
+              : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
+          }`}
+        >
+          <RiShieldUserLine size={15} /> Admin
+        </button>
       </div>
 
-      <div>
-        <label className="text-xs text-[var(--color-text-muted)] font-medium mb-1.5 block">Full Name</label>
-        <div className="relative">
-          <RiUserLine className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" size={15} />
-          <input type="text" required autoComplete="name" placeholder="Dr. Your Name"
-            value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className={inputClass} />
+      {/* Admin message - admins don't self-register */}
+      {role === "admin" && (
+        <div className="flex flex-col items-center gap-4 py-6">
+          <div className="w-14 h-14 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+            <RiShieldUserLine size={24} className="text-amber-400" />
+          </div>
+          <div className="text-center">
+            <p className="text-[var(--color-text)] font-medium text-sm mb-1">Admin accounts are managed internally</p>
+            <p className="text-[var(--color-text-muted)] text-xs leading-relaxed max-w-[260px]">
+              Admins cannot self-register. If you already have admin credentials, use the sign-in page instead.
+            </p>
+          </div>
+          <Link
+            href="/login"
+            className="flex items-center gap-2 bg-amber-500 text-dark text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-amber-400 transition-all shadow-lg shadow-amber-500/20"
+          >
+            Go to Sign In <RiArrowRightLine size={14} />
+          </Link>
         </div>
-      </div>
+      )}
 
-      <div>
-        <label className="text-xs text-[var(--color-text-muted)] font-medium mb-1.5 block">Email</label>
-        <div className="relative">
-          <RiMailLine className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" size={15} />
-          <input type="email" required autoComplete="email" placeholder="you@example.com"
-            value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
-            className={inputClass} />
-        </div>
-      </div>
+      {/* User signup form */}
+      {role === "user" && (
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div>
+            <label className="text-xs text-[var(--color-text-muted)] font-medium mb-1.5 block">Full Name</label>
+            <div className="relative">
+              <RiUserLine className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" size={15} />
+              <input type="text" required autoComplete="name" placeholder="Dr. Your Name"
+                value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
+                className={inputClass} />
+            </div>
+          </div>
 
-      <div>
-        <label className="text-xs text-[var(--color-text-muted)] font-medium mb-1.5 block">Password</label>
-        <div className="relative">
-          <RiLockPasswordLine className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" size={15} />
-          <input type={showPass ? "text" : "password"} required autoComplete="new-password"
-            placeholder="Min. 8 characters" minLength={8}
-            value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
-            className={`${inputClass} pr-10`} />
-          <button type="button" onClick={() => setShowPass(!showPass)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors">
-            {showPass ? <RiEyeOffLine size={15} /> : <RiEyeLine size={15} />}
+          <div>
+            <label className="text-xs text-[var(--color-text-muted)] font-medium mb-1.5 block">Email</label>
+            <div className="relative">
+              <RiMailLine className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" size={15} />
+              <input type="email" required autoComplete="email" placeholder="you@example.com"
+                value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}
+                className={inputClass} />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs text-[var(--color-text-muted)] font-medium mb-1.5 block">Password</label>
+            <div className="relative">
+              <RiLockPasswordLine className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" size={15} />
+              <input type={showPass ? "text" : "password"} required autoComplete="new-password"
+                placeholder="Min. 8 characters" minLength={8}
+                value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
+                className={`${inputClass} pr-10`} />
+              <button type="button" onClick={() => setShowPass(!showPass)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors">
+                {showPass ? <RiEyeOffLine size={15} /> : <RiEyeLine size={15} />}
+              </button>
+            </div>
+          </div>
+
+          {error && <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs px-3 py-2.5 rounded-xl">{error}</div>}
+
+          <button type="submit" disabled={loading}
+            className="flex items-center justify-center gap-2 w-full bg-primary text-dark font-semibold py-3 rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 disabled:opacity-60 mt-1">
+            {loading ? "Creating account..." : <><span>Create Account</span><RiArrowRightLine size={15} /></>}
           </button>
-        </div>
-      </div>
-
-      {error && <div className="bg-red-500/10 border border-red-500/20 text-red-400 text-xs px-3 py-2.5 rounded-xl">{error}</div>}
-
-      <button type="submit" disabled={loading}
-        className="flex items-center justify-center gap-2 w-full bg-primary text-dark font-semibold py-3 rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 disabled:opacity-60 mt-1">
-        {loading ? "Creating account..." : <><span>Create Account</span><RiArrowRightLine size={15} /></>}
-      </button>
-    </form>
+        </form>
+      )}
+    </div>
   );
 }
 

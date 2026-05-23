@@ -9,7 +9,8 @@ export default function AnalyticsBreakdown() {
     const token = getToken();
     apiFetch("/api/v1/dashboard/overall", {}, token ?? undefined)
       .then((d) => {
-        const total = d.data?.overview?.totalEventsConducted ?? 0;
+        const resp = d as Record<string, Record<string, Record<string, number>>>;
+        const total = resp.data?.overview?.totalEventsConducted ?? 0;
         setData({ total, online: 0, offline: total });
       })
       .catch(console.error);

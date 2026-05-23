@@ -4,13 +4,15 @@ import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import {
-  RiMenuLine, RiCloseLine, RiShieldUserLine,
+  RiMenuLine, RiCloseLine,
   RiArrowDownSLine, RiCalendarEventLine,
-  RiHistoryLine, RiLayoutGridLine,
+  RiHistoryLine, RiLayoutGridLine, RiDashboardLine, RiLogoutBoxRLine,
 } from "react-icons/ri";
 import { motion, AnimatePresence } from "framer-motion";
 import { siteConfig } from "@/config/site";
 import ThemeToggle from "@/components/ui/ThemeToggle";
+import { useAppStore } from "@/store";
+import { getSession, signOut } from "@/services/authService";
 
 const links = siteConfig.navLinks;
 
@@ -47,6 +49,28 @@ export default function Navbar() {
   const [mobileEventsOpen, setMobileEventsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const eventsActive = pathname.startsWith("/events");
+
+  const { user, logout: storeLogout } = useAppStore();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    // Check if user has an active session
+    getSession().then((session) => {
+      setIsAuthenticated(!!session);
+    }).catch(() => setIsAuthenticated(false));
+  }, [pathname]);
+
+  // Also check store user
+  useEffect(() => {
+    if (user) setIsAuthenticated(true);
+  }, [user]);
+
+  async function handleLogout() {
+    await signOut();
+    storeLogout();
+    setIsAuthenticated(false);
+    window.location.href = "/";
+  }
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -130,15 +154,26 @@ export default function Navbar() {
 
           <div className="flex items-center gap-2 ml-2">
             <ThemeToggle />
-            <Link href="/login" className="border border-border text-[var(--color-text-muted)] text-sm font-medium px-4 py-2 rounded-lg hover:border-primary/40 hover:text-primary transition-all">
-              Sign In
-            </Link>
-            <Link href="/signup" className="bg-primary text-dark text-sm font-semibold px-4 py-2 rounded-lg hover:bg-primary/80 transition-all shadow-lg shadow-primary/20">
-              Sign Up
-            </Link>
-            <Link href="/admin/login" className="flex items-center gap-1.5 border border-border text-[var(--color-text-muted)] text-sm font-medium px-3 py-2 rounded-lg hover:border-primary/60 hover:text-primary hover:bg-primary/5 transition-all">
-              <RiShieldUserLine size={15} /> Admin
-            </Link>
+
+            {isAuthenticated ? (
+              <>
+                <Link href="/dashboard" className="flex items-center gap-1.5 border border-primary/30 text-primary text-sm font-medium px-4 py-2 rounded-lg hover:bg-primary/10 transition-all">
+                  <RiDashboardLine size={15} /> Dashboard
+                </Link>
+                <button onClick={handleLogout} className="flex items-center gap-1.5 border border-border text-[var(--color-text-muted)] text-sm font-medium px-3 py-2 rounded-lg hover:border-red-500/40 hover:text-red-400 transition-all">
+                  <RiLogoutBoxRLine size={15} /> Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <Link href="/login" className="border border-border text-[var(--color-text-muted)] text-sm font-medium px-4 py-2 rounded-lg hover:border-primary/40 hover:text-primary transition-all">
+                  Sign In
+                </Link>
+                <Link href="/signup" className="bg-primary text-dark text-sm font-semibold px-4 py-2 rounded-lg hover:bg-primary/80 transition-all shadow-lg shadow-primary/20">
+                  Sign Up
+                </Link>
+              </>
+            )}
           </div>
         </div>
 
@@ -197,18 +232,29 @@ export default function Navbar() {
               {links.map((l) => <NavLink key={l.href} href={l.href} label={l.label} onClick={() => setOpen(false)} />)}
 
               <div className="flex gap-2 mt-3 flex-wrap">
-                <Link href="/login" onClick={() => setOpen(false)}
-                  className="flex-1 min-w-[80px] border border-border text-[var(--color-text-muted)] text-sm font-medium px-3 py-2.5 rounded-lg text-center hover:border-primary/40 hover:text-primary transition-all">
-                  Sign In
-                </Link>
-                <Link href="/signup" onClick={() => setOpen(false)}
-                  className="flex-1 min-w-[80px] bg-primary text-dark text-sm font-semibold px-3 py-2.5 rounded-lg text-center">
-                  Sign Up
-                </Link>
-                <Link href="/admin/login" onClick={() => setOpen(false)}
-                  className="flex items-center gap-1.5 border border-border text-[var(--color-text-muted)] text-sm font-medium px-3 py-2.5 rounded-lg hover:border-primary/60 hover:text-primary transition-all">
-                  <RiShieldUserLine size={14} /> Admin
-                </Link>
+                {isAuthenticated ? (
+                  <>
+                    <Link href="/dashboard" onClick={() => setOpen(false)}
+                      className="flex-1 min-w-[80px] flex items-center justify-center gap-1.5 border border-primary/30 text-primary text-sm font-medium px-3 py-2.5 rounded-lg">
+                      <RiDashboardLine size={14} /> Dashboard
+                    </Link>
+                    <button onClick={() => { setOpen(false); handleLogout(); }}
+                      className="flex items-center gap-1.5 border border-border text-[var(--color-text-muted)] text-sm font-medium px-3 py-2.5 rounded-lg hover:text-red-400">
+                      <RiLogoutBoxRLine size={14} /> Logout
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link href="/login" onClick={() => setOpen(false)}
+                      className="flex-1 min-w-[80px] border border-border text-[var(--color-text-muted)] text-sm font-medium px-3 py-2.5 rounded-lg text-center hover:border-primary/40 hover:text-primary transition-all">
+                      Sign In
+                    </Link>
+                    <Link href="/signup" onClick={() => setOpen(false)}
+                      className="flex-1 min-w-[80px] bg-primary text-dark text-sm font-semibold px-3 py-2.5 rounded-lg text-center">
+                      Sign Up
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
           </motion.div>

@@ -1,8 +1,8 @@
-import prisma from '../../config/prisma.config.js';
+import { getDb } from '../../config/prisma.config.js';
 
 export const paymentRepository = {
   findAllPayments: async () => {
-    return prisma.payment.findMany({
+    const db = getDb(); return db.payment.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
         user: {
@@ -19,21 +19,21 @@ export const paymentRepository = {
   },
 
   findEventById: async (eventId) => {
-    return prisma.event.findUnique({ where: { id: eventId } });
+    const db = getDb(); return db.event.findUnique({ where: { id: eventId } });
   },
 
   findEnrollmentByUserAndEvent: async (userId, eventId) => {
-    return prisma.enrollment.findUnique({
+    const db = getDb(); return db.enrollment.findUnique({
       where: { userId_eventId: { userId, eventId } }
     });
   },
 
   findPaymentById: async (paymentId) => {
-    return prisma.payment.findUnique({ where: { id: paymentId } });
+    const db = getDb(); return db.payment.findUnique({ where: { id: paymentId } });
   },
 
   createPaymentAndEnrollment: async (data) => {
-    return prisma.$transaction(async (tx) => {
+    const db = getDb(); return db.$transaction(async (tx) => {
       const payment = await tx.payment.create({
         data: {
           userId: data.userId,
@@ -58,7 +58,7 @@ export const paymentRepository = {
   },
 
   updatePaymentAndEnrollmentStatus: async (data) => {
-    return prisma.$transaction(async (tx) => {
+    const db = getDb(); return db.$transaction(async (tx) => {
       const payment = await tx.payment.update({
         where: { id: data.paymentId },
         data: {

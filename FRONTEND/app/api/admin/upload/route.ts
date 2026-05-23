@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://api.indriyax.com";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 async function verifyAdminSession(req: NextRequest): Promise<boolean> {
   const token = req.cookies.get("admin_session")?.value;

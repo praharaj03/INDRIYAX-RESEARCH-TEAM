@@ -24,12 +24,14 @@ export async function GET(req: NextRequest) {
   }
 
   // Proxy to backend
-  const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001";
   
   try {
+    const adminApiKey = process.env.ADMIN_API_KEY || "";
     const response = await fetch(`${backendUrl}/api/v1/dashboard/overall`, {
       headers: {
         "Content-Type": "application/json",
+        "Authorization": `Bearer ${adminApiKey}`,
       },
     });
 

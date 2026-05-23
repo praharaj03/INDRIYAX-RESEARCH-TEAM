@@ -8,10 +8,10 @@ export default function ThemeToggle({ className = "" }: { className?: string }) 
     <button
       onClick={toggle}
       aria-label="Toggle theme"
-      className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-all ${
+      className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-all border-border hover:border-primary/40 ${
         theme === "dark"
-          ? "border-border text-gray-400 hover:text-primary hover:border-primary/40 bg-dark-4"
-          : "border-border text-gray-600 hover:text-primary hover:border-primary/40 bg-dark-3"
+          ? "text-gray-400 hover:text-primary bg-dark-4"
+          : "text-gray-500 hover:text-primary bg-dark-3"
       } ${className}`}
     >
       {theme === "dark" ? <RiSunLine size={15} /> : <RiMoonLine size={15} />}

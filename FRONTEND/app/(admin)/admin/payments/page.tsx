@@ -32,7 +32,7 @@ export default function PaymentsPage() {
   useEffect(() => {
     const token = getToken();
     apiFetch("/api/v1/payments", {}, token ?? undefined)
-      .then((d) => setPayments(d.data ?? []))
+      .then((d) => setPayments((d.data as Payment[]) ?? []))
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);

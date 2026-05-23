@@ -1,11 +1,10 @@
-// TODO: Configure NextAuth providers here
-// import GoogleProvider from "next-auth/providers/google";
-// import CredentialsProvider from "next-auth/providers/credentials";
+// Authentication is handled by Supabase Auth
+// See: services/authService.ts for the client-side implementation
+// See: BACKEND/src/middlewares/auth.middleware.js for server-side token verification
 
 export const authConfig = {
-  // providers: [
-  //   GoogleProvider({ clientId: process.env.GOOGLE_ID!, clientSecret: process.env.GOOGLE_SECRET! }),
-  // ],
-  // pages: { signIn: "/login" },
-  // callbacks: { ... },
+  signInUrl: "/login",
+  signUpUrl: "/signup",
+  afterSignInUrl: "/dashboard",
+  afterSignUpUrl: "/dashboard",
 };
