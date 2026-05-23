@@ -9,7 +9,9 @@ export const createPostSchema = z.object({
     published: z.boolean().default(false),
     isPremium: z.boolean().default(false),
     tags: z.array(z.string()).default([]),
-  })
+  }),
+  params: z.object({}).optional(),
+  query: z.object({}).optional(),
 });
 
 export const updatePostSchema = z.object({
@@ -24,5 +26,6 @@ export const updatePostSchema = z.object({
     published: z.boolean().optional(),
     isPremium: z.boolean().optional(),
     tags: z.array(z.string()).optional(),
-  })
+  }),
+  query: z.object({}).optional(),
 });

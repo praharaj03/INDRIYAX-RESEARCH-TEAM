@@ -16,7 +16,10 @@ async function verifyAdminSession(req: NextRequest): Promise<boolean> {
   }
 }
 
-export async function GET(req: NextRequest) {
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   if (!(await verifyAdminSession(req))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -27,31 +30,10 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const response = await fetch(`${BACKEND_URL}/api/v1/posts`, {
-      headers: { "Authorization": `Bearer ${adminApiKey}` },
-    });
-    const data = await response.json();
-    return NextResponse.json(data, { status: response.status });
-  } catch (error) {
-    console.error("Admin news GET error:", error);
-    return NextResponse.json({ error: "Failed to fetch news" }, { status: 500 });
-  }
-}
-
-export async function POST(req: NextRequest) {
-  if (!(await verifyAdminSession(req))) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const adminApiKey = process.env.ADMIN_API_KEY;
-  if (!adminApiKey) {
-    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
-  }
-
-  try {
+    const { id } = await params;
     const body = await req.json();
-    const response = await fetch(`${BACKEND_URL}/api/v1/posts`, {
-      method: "POST",
+    const response = await fetch(`${BACKEND_URL}/api/v1/payments/${id}/review`, {
+      method: "PATCH",
       headers: {
         "Authorization": `Bearer ${adminApiKey}`,
         "Content-Type": "application/json",
@@ -61,7 +43,7 @@ export async function POST(req: NextRequest) {
     const data = await response.json();
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
-    console.error("Admin news POST error:", error);
-    return NextResponse.json({ error: "Failed to create post" }, { status: 500 });
+    console.error("Admin payment review error:", error);
+    return NextResponse.json({ error: "Failed to review payment" }, { status: 500 });
   }
 }

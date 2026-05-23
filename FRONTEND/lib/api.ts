@@ -1,6 +1,6 @@
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ||
-  (typeof window !== "undefined" ? "" : "https://api.indriyax.com");
+  (typeof window !== "undefined" ? "" : "http://localhost:5000");
 
 export async function apiFetch(
   path: string,

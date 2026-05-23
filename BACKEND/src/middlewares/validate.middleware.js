@@ -1,35 +1,36 @@
 import { BadRequestException } from '../shared/exceptions/index.js';
 
-/**
- * Validates incoming request data against a Zod schema.
- * @param {import('zod').AnyZodObject} schema 
- */
 export const validate = (schema) => {
   return async (req, res, next) => {
     try {
-      // Validate body, query, and params against the schema
       const parsed = await schema.parseAsync({
-        body: req.body,
-        query: req.query,
+        body:   req.body,
+        query:  req.query,
         params: req.params,
       });
-      
-      // Assign the validated data back to the req object
-      req.body = parsed.body;
-      req.query = parsed.query;
-      req.params = parsed.params;
-      
+
+      req.body   = parsed.body   ?? req.body;
+      req.params = parsed.params ?? req.params;
+
       next();
     } catch (error) {
-      // Format Zod errors nicely for the client
-      const formattedErrors = error.errors.map((err) => ({
-        field: err.path.slice(1).join('.'), // turns ["body", "utr"] into "utr"
+      // Log the real error so we can see what's actually failing
+      console.error('🔴 VALIDATE ERROR name:', error?.name);
+      console.error('🔴 VALIDATE ERROR message:', error?.message);
+      console.error('🔴 VALIDATE ERROR issues:', JSON.stringify(error?.errors ?? error?.issues, null, 2));
+
+      // Zod throws ZodError which has an .errors array
+      const formattedErrors = (error?.errors ?? error?.issues)?.map((err) => ({
+        field:   err.path.slice(1).join('.'),
         message: err.message,
-      }));
-      
-      // Pass a descriptive message to our centralized error handler
-      const exception = new BadRequestException('Validation failed');
-      exception.errors = formattedErrors; // Attach errors array so middleware can show details
+      })) || [];
+
+      const exception = new BadRequestException(
+        formattedErrors.length
+          ? `Validation failed: ${formattedErrors.map(e => `${e.field} — ${e.message}`).join(', ')}`
+          : 'Validation failed'
+      );
+      exception.errors = formattedErrors;
       next(exception);
     }
   };

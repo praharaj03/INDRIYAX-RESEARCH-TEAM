@@ -7,7 +7,7 @@ import {
   RiLinkM, RiUploadCloud2Line, RiImageLine, RiCloseLine,
 } from "react-icons/ri";
 import { getEventBySlug, updateEvent, deleteEvent, uploadImage } from "@/services/eventService";
-import { apiFetch, getToken } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 
 const inputClass = "w-full bg-dark-4 border border-border text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-gray-700";
 const labelClass = "text-xs text-gray-500 font-medium mb-1.5 block";
@@ -26,15 +26,15 @@ export default function EditEventPage() {
   const [form, setForm] = useState({
     title: "", type: "OFFLINE" as "OFFLINE" | "ONLINE",
     date: "", venue: "", speaker: "", description: "",
-    thumbnail: "", summary: "", recordingLink: "",
+    thumbnail: "", summary: "", recordingLink: "", meetingLink: "",
     price: "0", restricted: false, isActive: true,
   });
 
   useEffect(() => {
     async function load() {
       try {
-        const token = getToken();
-        const data = await apiFetch(`/api/v1/events/${id}`, {}, token ?? undefined);
+        // Use admin route which authenticates with admin API key
+        const data = await apiFetch(`/api/admin/events/${id}`);
         const ev = data.data;
         setForm({
           title: ev.title ?? "",
@@ -46,6 +46,7 @@ export default function EditEventPage() {
           thumbnail: ev.thumbnail ?? "",
           summary: ev.summary ?? "",
           recordingLink: ev.recordingLink ?? "",
+          meetingLink: ev.meetingLink ?? "",
           price: String(ev.price ?? 0),
           restricted: ev.restricted ?? false,
           isActive: ev.isActive ?? true,

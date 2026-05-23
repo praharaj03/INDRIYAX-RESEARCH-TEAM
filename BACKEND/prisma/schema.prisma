@@ -119,6 +119,7 @@ model Event {
   
   price         Int       @default(0) // 0 means free event
   paymentQrUrl  String?   // UPI QR code for payment (optional, only for paid events)
+  meetingLink   String?   // Zoom/Meet link — only revealed to APPROVED enrollees
   restricted    Boolean   @default(false)
   isActive      Boolean   @default(true)
   summary       String?   @db.Text

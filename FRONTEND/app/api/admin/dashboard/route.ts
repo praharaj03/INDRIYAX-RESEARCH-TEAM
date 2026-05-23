@@ -27,8 +27,14 @@ export async function GET(req: NextRequest) {
   const backendUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
   
   try {
+    const adminApiKey = process.env.ADMIN_API_KEY;
+    if (!adminApiKey) {
+      return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+    }
+
     const response = await fetch(`${backendUrl}/api/v1/dashboard/overall`, {
       headers: {
+        "Authorization": `Bearer ${adminApiKey}`,
         "Content-Type": "application/json",
       },
     });

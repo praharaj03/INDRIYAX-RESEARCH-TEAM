@@ -9,7 +9,7 @@ export const createEventSchema = z.object({
 
     description: z
       .string()
-      .min(10, "Description must be at least 10 characters"),
+      .min(5, "Description must be at least 5 characters"),
 
     speaker: z
       .string()
@@ -34,6 +34,16 @@ export const createEventSchema = z.object({
       .min(0, "Price cannot be negative")
       .default(0),
 
+    paymentQrUrl: z
+      .string()
+      .url("Valid payment QR URL is required")
+      .optional(),
+
+    meetingLink: z
+      .string()
+      .url("Valid meeting link URL is required")
+      .optional(),
+
     date: z
       .string()
       .datetime("Must be a valid ISO-8601 date string"),
@@ -44,8 +54,20 @@ export const createEventSchema = z.object({
 
     isActive: z
       .boolean()
-      .default(true)
-  })
+      .default(true),
+
+    summary: z
+      .string()
+      .optional(),
+
+    recordingLink: z
+      .string()
+      .url("Valid recording link URL is required")
+      .optional()
+  }),
+  
+  params: z.object({}).optional(),
+  query: z.object({}).optional()
 });
 
 export const updateEventSchema = z.object({
@@ -85,6 +107,16 @@ export const updateEventSchema = z.object({
       .min(0)
       .optional(),
 
+    paymentQrUrl: z
+      .string()
+      .url()
+      .optional(),
+
+    meetingLink: z
+      .string()
+      .url()
+      .optional(),
+
     date: z
       .string()
       .datetime()
@@ -106,5 +138,7 @@ export const updateEventSchema = z.object({
       .string()
       .url()
       .optional()
-  })
+  }),
+  
+  query: z.object({}).optional()
 });

@@ -8,8 +8,9 @@ import EventDetailMeta from "@/components/events/EventDetailMeta";
 import EventDetailActions from "@/components/events/EventDetailActions";
 import { RiArrowLeftLine } from "react-icons/ri";
 
-export default async function EventDetailPage({ params }: { params: { slug: string } }) {
-  const event = await getEventBySlug(params.slug);
+export default async function EventDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const event = await getEventBySlug(slug);
   if (!event) notFound();
 
   const isPast = new Date(event.date) < new Date();
