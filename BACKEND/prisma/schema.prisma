@@ -1,0 +1,188 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL") 
+}
+
+// ------------------------------------------------------
+// ENUMS
+// ------------------------------------------------------
+
+enum Role {
+  USER
+  AUTHOR
+  ADMIN
+}
+
+enum EventType {
+  ONLINE
+  OFFLINE
+  HYBRID
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  REJECTED
+  EXPIRED
+}
+
+// NEW: Tracks if a user is allowed to attend the event
+enum EnrollmentStatus {
+  PENDING    // Waiting for payment verification
+  APPROVED   // Payment verified, ticket confirmed
+  REJECTED   // Payment failed/rejected
+}
+
+// ------------------------------------------------------
+// MODELS
+// ------------------------------------------------------
+
+model User {
+  id               String         @id @default(uuid()) // Supabase UUID
+  email            String         @unique
+  fullName         String?
+  imageUrl         String?
+  role             Role           @default(USER)
+  
+  // Relations
+  posts            Post[]         
+  comments         Comment[]
+  enrollments      Enrollment[]   // Replaced subscriptions with enrollments
+  
+  // Payment Relations
+  payments         Payment[]      @relation("UserPayments")
+  reviewedPayments Payment[]      @relation("AdminReviewer")
+
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([email])
+}
+
+model Post {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  title       String
+  content     String    @db.Text
+  excerpt     String?   @db.Text
+  coverImage  String?
+  
+  published   Boolean   @default(false)
+  isPremium   Boolean   @default(false) 
+  tags        String[]  
+  
+  // Relations
+  authorId    String
+  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments    Comment[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([slug])
+  @@index([authorId])
+}
+
+model Comment {
+  id          String   @id @default(cuid())
+  content     String   @db.Text
+  
+  // Relations
+  postId      String
+  post        Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([postId])
+  @@index([userId])
+}
+
+model Event {
+  id            String    @id @default(cuid())
+  slug          String    @unique
+  title         String
+  description   String    @db.Text
+  speaker       String
+  thumbnail     String
+  venue         String
+  type          EventType
+  
+  price         Int       @default(0) // 0 means free event
+  paymentQrUrl  String?   // UPI QR code for payment (optional, only for paid events)
+  meetingLink   String?   // Zoom/Meet link — only revealed to APPROVED enrollees
+  restricted    Boolean   @default(false)
+  isActive      Boolean   @default(true)
+  summary       String?   @db.Text
+  recordingLink String?
+  date          DateTime
+
+  // Relations
+  enrollments   Enrollment[]
+  payments      Payment[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([slug])
+  @@index([date])
+}
+
+// NEW: Replaces the Subscription model
+model Enrollment {
+  id          String           @id @default(cuid())
+  userId      String
+  eventId     String
+  status      EnrollmentStatus @default(PENDING)
+
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event       Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  // Ensures a user cannot buy two tickets for the exact same event
+  @@unique([userId, eventId]) 
+  @@index([userId])
+  @@index([eventId])
+}
+
+model Payment {
+  id              String        @id @default(cuid())
+  userId          String
+  eventId         String        // Replaced 'plan' with 'eventId'
+  amount          Int           
+  
+  // Manual Verification Data
+  utr             String?       @unique
+  screenshotUrl   String?
+  
+  status          PaymentStatus @default(PENDING)
+  
+  // Admin Review Tracking
+  reviewedById    String?
+  rejectionReason String?
+  reviewedAt      DateTime?
+
+  // Relations
+  user            User          @relation("UserPayments", fields: [userId], references: [id], onDelete: Cascade)
+  event           Event         @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  reviewer        User?         @relation("AdminReviewer", fields: [reviewedById], references: [id])
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([userId])
+  @@index([eventId])
+  @@index([utr])
+  @@index([status])
+}
