@@ -16,7 +16,10 @@ async function verifyAdminSession(req: NextRequest): Promise<boolean> {
   }
 }
 
-export async function GET(req: NextRequest) {
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   if (!(await verifyAdminSession(req))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -27,13 +30,20 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const response = await fetch(`${BACKEND_URL}/api/v1/payments`, {
-      headers: { "Authorization": `Bearer ${adminApiKey}` },
+    const { id } = await params;
+    const body = await req.json();
+    const response = await fetch(`${BACKEND_URL}/api/v1/payments/${id}/review`, {
+      method: "PATCH",
+      headers: {
+        "Authorization": `Bearer ${adminApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
     });
     const data = await response.json();
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
-    console.error("Admin payments GET error:", error);
-    return NextResponse.json({ error: "Failed to fetch payments" }, { status: 500 });
+    console.error("Admin payment review error:", error);
+    return NextResponse.json({ error: "Failed to review payment" }, { status: 500 });
   }
 }

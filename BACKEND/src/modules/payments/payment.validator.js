@@ -5,12 +5,12 @@ export const createPaymentSchema = z.object({
     // We now expect an eventId instead of a subscription plan
     eventId: z.string().cuid("Invalid Event ID format"),
     
-    amount: z.number().positive("Amount must be greater than 0"),
+    amount: z.number().min(0, "Amount cannot be negative"),
     
     utr: z.string()
-      .min(12, "UTR/Transaction ID must be at least 12 characters long")
-      .max(22, "UTR code is too long")
-      .regex(/^[a-zA-Z0-9]+$/, "UTR can only contain letters and numbers"),
+      .min(6, "UTR/Transaction ID must be at least 6 characters long")
+      .max(30, "UTR code is too long")
+      .regex(/^[a-zA-Z0-9-]+$/, "UTR can only contain letters, numbers, and hyphens"),
       
     screenshotUrl: z.string().url("Invalid screenshot URL format").optional(),
   })

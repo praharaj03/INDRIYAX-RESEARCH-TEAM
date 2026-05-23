@@ -23,6 +23,30 @@ interface UserProfile {
   createdAt?: string;
 }
 
+interface Enrollment {
+  id: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  createdAt: string;
+  event: {
+    id: string;
+    slug: string;
+    title: string;
+    thumbnail: string;
+    date: string;
+    venue: string;
+    type: string;
+    price: number;
+    speaker: string;
+    meetingLink?: string;
+  };
+}
+
+const statusConfig = {
+  PENDING:  { label: "Pending Verification", icon: RiTimeLine,            cls: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
+  APPROVED: { label: "Confirmed",            icon: RiCheckboxCircleLine,  cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
+  REJECTED: { label: "Rejected",             icon: RiCloseCircleLine,     cls: "bg-red-500/10 text-red-400 border-red-500/20" },
+};
+
 export default function DashboardPage() {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -150,6 +174,8 @@ export default function DashboardPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-16">
+
+      {/* Header */}
       <AnimateIn>
         <div className="flex items-center justify-between mb-10">
           <div>

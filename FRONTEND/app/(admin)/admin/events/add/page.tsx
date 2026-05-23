@@ -110,6 +110,7 @@ export default function AddEventPage() {
         type: form.type,
         price: Number(form.price),
         date: new Date(form.date).toISOString(),
+        ...(form.paymentQrUrl ? { paymentQrUrl: form.paymentQrUrl } : {}),
         ...(form.summary ? { summary: form.summary } : {}),
         ...(form.recordingLink ? { recordingLink: form.recordingLink } : {}),
         ...(form.paymentQrUrl ? { paymentQrUrl: form.paymentQrUrl } : {}),

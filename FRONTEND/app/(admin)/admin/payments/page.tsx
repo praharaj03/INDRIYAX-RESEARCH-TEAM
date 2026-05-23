@@ -2,8 +2,6 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { RiCheckLine, RiCloseLine, RiExternalLinkLine } from "react-icons/ri";
-import { apiFetch, getToken } from "@/lib/api";
-import { reviewPayment } from "@/services/paymentService";
 
 interface Payment {
   id: string;
@@ -40,9 +38,15 @@ export default function PaymentsPage() {
   async function approve(id: string) {
     setActionLoading(id);
     try {
-      await reviewPayment(id, "SUCCESS");
+      const res = await fetch(`/api/admin/payments/${id}/review`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "SUCCESS" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || data.error || "Approval failed");
       setPayments((prev) => prev.map((p) => p.id === id ? { ...p, status: "SUCCESS" } : p));
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); alert(err instanceof Error ? err.message : "Failed"); }
     setActionLoading(null);
   }
 
@@ -50,9 +54,15 @@ export default function PaymentsPage() {
     if (!rejectId || !rejectReason.trim()) return;
     setActionLoading(rejectId);
     try {
-      await reviewPayment(rejectId, "REJECTED", rejectReason);
+      const res = await fetch(`/api/admin/payments/${rejectId}/review`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "REJECTED", rejectionReason: rejectReason }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || data.error || "Rejection failed");
       setPayments((prev) => prev.map((p) => p.id === rejectId ? { ...p, status: "REJECTED" } : p));
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); alert(err instanceof Error ? err.message : "Failed"); }
     setActionLoading(null);
     setRejectId(null);
     setRejectReason("");

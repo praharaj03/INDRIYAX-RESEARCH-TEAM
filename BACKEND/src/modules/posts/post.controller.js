@@ -21,7 +21,7 @@ export const createPost = catchAsync(async (req, res, next) => {
  * @access  Public
  */
 export const getPosts = catchAsync(async (req, res, next) => {
-  const posts = await postService.getAllPosts(req.user);
+  const posts = await postService.getAllPosts(req.user ?? null);
   res.status(200).json({
     success: true,
     data: posts

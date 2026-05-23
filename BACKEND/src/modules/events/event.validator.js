@@ -9,7 +9,7 @@ export const createEventSchema = z.object({
 
     description: z
       .string()
-      .min(10, "Description must be at least 10 characters"),
+      .min(5, "Description must be at least 5 characters"),
 
     speaker: z
       .string()
@@ -33,6 +33,16 @@ export const createEventSchema = z.object({
       .number()
       .min(0, "Price cannot be negative")
       .default(0),
+
+    paymentQrUrl: z
+      .string()
+      .url("Valid payment QR URL is required")
+      .optional(),
+
+    meetingLink: z
+      .string()
+      .url("Valid meeting link URL is required")
+      .optional(),
 
     date: z
       .string()
@@ -102,6 +112,16 @@ export const updateEventSchema = z.object({
     price: z
       .number()
       .min(0)
+      .optional(),
+
+    paymentQrUrl: z
+      .string()
+      .url()
+      .optional(),
+
+    meetingLink: z
+      .string()
+      .url()
       .optional(),
 
     date: z

@@ -30,8 +30,8 @@ export async function GET(req: NextRequest) {
     const adminApiKey = process.env.ADMIN_API_KEY || "";
     const response = await fetch(`${backendUrl}/api/v1/dashboard/overall`, {
       headers: {
-        "Content-Type": "application/json",
         "Authorization": `Bearer ${adminApiKey}`,
+        "Content-Type": "application/json",
       },
     });
 

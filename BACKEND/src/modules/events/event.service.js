@@ -35,6 +35,14 @@ export const eventService = {
     return event;
   },
 
+  getEventById: async (id) => {
+    const event = await eventRepository.findById(id);
+    if (!event) {
+      throw new NotFoundException('Event not found');
+    }
+    return event;
+  },
+
   updateEvent: async (id, payload) => {
     const event = await eventRepository.findById(id);
     if (!event) {

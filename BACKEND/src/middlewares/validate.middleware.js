@@ -1,16 +1,11 @@
 import { BadRequestException } from '../shared/exceptions/index.js';
 
-/**
- * Validates incoming request data against a Zod schema.
- * @param {import('zod').AnyZodObject} schema 
- */
 export const validate = (schema) => {
   return async (req, res, next) => {
     try {
-      // Validate body, query, and params against the schema
       const parsed = await schema.parseAsync({
-        body: req.body,
-        query: req.query,
+        body:   req.body,
+        query:  req.query,
         params: req.params,
       });
       

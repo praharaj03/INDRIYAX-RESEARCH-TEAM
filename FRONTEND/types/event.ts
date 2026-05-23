@@ -9,6 +9,8 @@ export interface Event {
   date: string;
   venue: string;
   price: number;
+  paymentQrUrl?: string;
+  meetingLink?: string;
   restricted?: boolean;
   isActive?: boolean;
   summary?: string;
