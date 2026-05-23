@@ -7,7 +7,7 @@ import {
   RiLinkM, RiUploadCloud2Line, RiImageLine, RiCloseLine,
 } from "react-icons/ri";
 import { getEventBySlug, updateEvent, deleteEvent, uploadImage } from "@/services/eventService";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, getToken } from "@/lib/api";
 
 const inputClass = "w-full bg-dark-4 border border-border text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-gray-700";
 const labelClass = "text-xs text-gray-500 font-medium mb-1.5 block";
@@ -46,6 +46,7 @@ export default function EditEventPage() {
           thumbnail: String(ev.thumbnail ?? ""),
           summary: String(ev.summary ?? ""),
           recordingLink: String(ev.recordingLink ?? ""),
+          meetingLink: String(ev.meetingLink ?? ""),
           price: String(ev.price ?? 0),
           restricted: Boolean(ev.restricted ?? false),
           isActive: Boolean(ev.isActive ?? true),

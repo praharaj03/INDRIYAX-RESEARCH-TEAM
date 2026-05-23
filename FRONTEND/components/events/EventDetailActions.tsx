@@ -4,7 +4,7 @@ import Link from "next/link";
 import {
   RiPlayCircleLine, RiTimeLine, RiMoneyDollarCircleLine,
   RiCalendarCheckLine, RiVideoLine, RiLoader4Line,
-  RiCheckboxCircleLine, RiClockLine,
+  RiCheckboxCircleLine, RiTimeLine as RiClockLine,
 } from "react-icons/ri";
 import type { Event } from "@/types/event";
 import { getSession } from "@/services/authService";

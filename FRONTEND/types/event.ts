@@ -15,6 +15,4 @@ export interface Event {
   isActive?: boolean;
   summary?: string;
   recordingLink?: string;
-  paymentQrUrl?: string;
-  meetingLink?: string;
 }
