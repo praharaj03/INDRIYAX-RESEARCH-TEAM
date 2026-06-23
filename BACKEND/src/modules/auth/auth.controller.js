@@ -29,3 +29,17 @@ export const updateMe = catchAsync(async (req, res, next) => {
     data: updatedUser
   });
 });
+
+/**
+ * @desc    Get current user's event enrollments
+ * @route   GET /api/v1/auth/my-enrollments
+ * @access  Private
+ */
+export const getMyEnrollments = catchAsync(async (req, res, next) => {
+  const enrollments = await authService.getMyEnrollments(req.user.id);
+  
+  res.status(200).json({
+    success: true,
+    data: enrollments
+  });
+});

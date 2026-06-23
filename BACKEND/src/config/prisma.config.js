@@ -9,7 +9,7 @@ if (config.nodeEnv === 'production') {
   // Prevent multiple instances of Prisma Client in development (Hot Reloading)
   if (!global.prisma) {
     global.prisma = new PrismaClient({
-      log: ['query', 'info', 'warn', 'error'], // Logs queries in dev mode
+      log: ['warn', 'error'], // Logs queries in dev mode
     });
   }
   prisma = global.prisma;

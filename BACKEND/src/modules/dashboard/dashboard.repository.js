@@ -78,5 +78,20 @@ export const dashboardRepository = {
         }
       }
     });
+  },
+
+  getPendingPaymentsForEvent: async (eventId) => {
+    return prisma.payment.findMany({
+      where: { 
+        eventId: eventId,
+        status: 'PENDING' 
+      },
+      orderBy: { createdAt: 'asc' }, // Oldest first so admins clear the queue in order
+      include: {
+        user: {
+          select: { id: true, fullName: true, email: true }
+        }
+      }
+    });
   }
 };

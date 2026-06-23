@@ -129,6 +129,7 @@ model Event {
   isActive      Boolean   @default(true)
   summary       String?   @db.Text
   recordingLink String?
+  meetingLink   String?
   date          DateTime
 
   // Relations

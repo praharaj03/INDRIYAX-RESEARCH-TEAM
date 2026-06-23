@@ -1,14 +1,13 @@
 import { Router } from 'express';
-import multer from 'express'; // Actually we import multer directly
-import multerLib from 'multer';
+import multer from 'multer';
 import { uploadImage } from './upload.controller.js';
-import { protect, restrictTo } from '../../middlewares/auth.middleware.js';
+import { protect } from '../../middlewares/auth.middleware.js';
 import { BadRequestException } from '../../shared/exceptions/index.js';
 
 const router = Router();
 
 // Configure Multer storage (Memory)
-const storage = multerLib.memoryStorage();
+const storage = multer.memoryStorage();
 
 // Multer file filter to ensure only images are uploaded
 const fileFilter = (req, file, cb) => {
@@ -19,7 +18,7 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-const upload = multerLib({
+const upload = multer({
   storage,
   fileFilter,
   limits: {
@@ -27,9 +26,8 @@ const upload = multerLib({
   }
 });
 
-// PRIVILEGED ROUTES (AUTHORS & ADMINS ONLY)
-
-router.use(protect, restrictTo('AUTHOR', 'ADMIN'));
+// ANY logged-in user can access upload routes (required for avatars)
+router.use(protect);
 
 // POST /api/v1/uploads/image
 // Expects a form-data payload with a key named 'file'

@@ -1,35 +1,38 @@
 import { BadRequestException } from '../shared/exceptions/index.js';
 
-/**
- * Validates incoming request data against a Zod schema.
- * @param {import('zod').AnyZodObject} schema 
- */
 export const validate = (schema) => {
   return async (req, res, next) => {
     try {
-      // Validate body, query, and params against the schema
       const parsed = await schema.parseAsync({
-        body: req.body,
-        query: req.query,
+        body:   req.body,
+        query:  req.query,
         params: req.params,
       });
       
       // Assign the validated data back to the req object
       req.body = parsed.body;
-      req.query = parsed.query;
-      req.params = parsed.params;
+      if (parsed.query) req.query = parsed.query;
+      if (parsed.params) req.params = parsed.params;
       
       next();
     } catch (error) {
       // Format Zod errors nicely for the client
-      const formattedErrors = error.errors.map((err) => ({
-        field: err.path.slice(1).join('.'), // turns ["body", "utr"] into "utr"
-        message: err.message,
-      }));
+      // Zod v4 uses `error.issues`, older versions use `error.errors`
+      const zodErrors = error.issues || error.errors || [];
       
-      // Pass a descriptive message to our centralized error handler
+      let formattedErrors = [];
+      if (Array.isArray(zodErrors) && zodErrors.length > 0) {
+        formattedErrors = zodErrors.map((err) => ({
+          field: (err.path || []).slice(1).join('.'),
+          message: err.message,
+        }));
+      } else {
+        // Fallback: use the error message directly
+        formattedErrors = [{ field: 'unknown', message: error.message || 'Validation failed' }];
+      }
+      
       const exception = new BadRequestException('Validation failed');
-      exception.errors = formattedErrors; // Attach errors array so middleware can show details
+      exception.errors = formattedErrors;
       next(exception);
     }
   };

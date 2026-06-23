@@ -14,6 +14,7 @@ export const createEventSchema = z.object({
     date: z.string().datetime("Must be a valid ISO-8601 date string"),
     restricted: z.boolean().default(false),
     isActive: z.boolean().default(true),
+    meetingLink: z.string().url("Valid meeting URL is required").optional().nullable(),
 
     // --- NEW PAYMENT FIELDS ---
     isFree: z.boolean().default(true),
@@ -50,6 +51,7 @@ export const updateEventSchema = z.object({
     isActive: z.boolean().optional(),
     summary: z.string().optional(),
     recordingLink: z.string().url().optional(),
+    meetingLink: z.string().url().optional().nullable(),
     
     // --- NEW PAYMENT FIELDS ---
     isFree: z.boolean().optional(),
