@@ -1,40 +1,39 @@
 import { Router } from 'express';
-import { 
-  createPost, 
-  getPosts, 
-  getPost, 
-  updatePost, 
-  deletePost 
+import {
+  createPost,
+  getPosts,
+  getPost,
+  updatePost,
+  deletePost,
 } from './post.controller.js';
 import { validate } from '../../middlewares/validate.middleware.js';
 import { createPostSchema, updatePostSchema } from './post.validator.js';
 import { protect, restrictTo } from '../../middlewares/auth.middleware.js';
+import { softAuth } from '../../middlewares/softAuth.middleware.js';
 
 const router = Router();
 
 // PUBLIC ROUTES
+// softAuth = optional auth: attaches req.user IF a valid token is present, never
+// blocks. Lets admins/authors see drafts here while anonymous users see only
+// published posts.
 
+// GET /api/v1/posts (Public list; privileged users additionally see drafts)
+router.get('/', softAuth, getPosts);
 
-// GET /api/v1/posts (Public - Lists published posts; Admins/Authors see all)
-router.get('/', getPosts);
-
-// GET /api/v1/posts/:slug (Public - Get a single post by its slug)
-router.get('/:slug', getPost);
-
-
+// GET /api/v1/posts/:slug (Public single post; privileged users can view drafts)
+router.get('/:slug', softAuth, getPost);
 
 // PRIVILEGED ROUTES (AUTHORS & ADMINS ONLY)
-
-// Protect ensures they are logged in. restrictTo ensures they have the right role.
 router.use(protect, restrictTo('AUTHOR', 'ADMIN'));
 
-// POST /api/v1/posts (Authors/Admins - Create a new post)
+// POST /api/v1/posts (Create)
 router.post('/', validate(createPostSchema), createPost);
 
-// PATCH /api/v1/posts/:id (Authors/Admins - Update a post)
+// PATCH /api/v1/posts/:id (Update)
 router.patch('/:id', validate(updatePostSchema), updatePost);
 
-// DELETE /api/v1/posts/:id (Authors/Admins - Delete a post)
+// DELETE /api/v1/posts/:id (Delete)
 router.delete('/:id', deletePost);
 
 export default router;

@@ -1,25 +1,37 @@
 import { commentRepository } from './comment.repository.js';
-import { NotFoundException, ForbiddenException } from '../../shared/exceptions/index.js';
-// Reusing postRepository to verify the post exists
-import { postRepository } from '../posts/post.repository.js'; 
+import {
+  NotFoundException,
+  ForbiddenException,
+} from '../../shared/exceptions/index.js';
+import { postRepository } from '../posts/post.repository.js';
+
+// A post whose comments/commenting are publicly available. Draft posts are
+// treated as nonexistent to anyone here (we don't run optional auth on the
+// public GET, and commenting requires the post to be live).
+const assertPostIsVisible = async (postId) => {
+  const post = await postRepository.findById(postId);
+  // Unpublished (draft) posts are hidden — return 404, don't reveal existence.
+  if (!post || !post.published) {
+    throw new NotFoundException('Post not found.');
+  }
+  return post;
+};
 
 export const commentService = {
   createComment: async (userId, payload) => {
-    // 1. Verify the post exists
-    const post = await postRepository.findById(payload.postId);
-    if (!post) {
-      throw new NotFoundException('Post not found.');
-    }
+    // Post must exist AND be published to accept comments.
+    await assertPostIsVisible(payload.postId);
 
-    // 2. Create the comment
     return commentRepository.create({
       content: payload.content,
       postId: payload.postId,
-      userId: userId
+      userId,
     });
   },
 
   getCommentsForPost: async (postId) => {
+    // Only expose a comment thread for a publicly visible post.
+    await assertPostIsVisible(postId);
     return commentRepository.findByPostId(postId);
   },
 
@@ -28,12 +40,10 @@ export const commentService = {
     if (!comment) {
       throw new NotFoundException('Comment not found.');
     }
-
-    // 1. Ownership Check: Only the author of the comment can edit it
+    // Owner-only edit.
     if (comment.userId !== user.id) {
       throw new ForbiddenException('You can only edit your own comments.');
     }
-
     return commentRepository.update(commentId, payload.content);
   },
 
@@ -42,12 +52,10 @@ export const commentService = {
     if (!comment) {
       throw new NotFoundException('Comment not found.');
     }
-
-    // 1. Moderation Check: Author can delete their own, Admin can delete ANY comment
+    // Owner OR admin may delete.
     if (comment.userId !== user.id && user.role !== 'ADMIN') {
       throw new ForbiddenException('You do not have permission to delete this comment.');
     }
-
     return commentRepository.delete(commentId);
-  }
+  },
 };

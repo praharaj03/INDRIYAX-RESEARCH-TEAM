@@ -5,7 +5,6 @@ import { protect, restrictTo } from '../../middlewares/auth.middleware.js';
 const router = Router();
 
 // ADMIN DASHBOARD ROUTES
-
 router.use(protect, restrictTo('ADMIN'));
 
 // GET /api/v1/dashboard/overall

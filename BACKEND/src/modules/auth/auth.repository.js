@@ -1,13 +1,25 @@
 import prisma from '../../config/prisma.config.js';
 
+// Exactly the public profile contract from the /me docs.
+const USER_PROFILE_SELECT = {
+  id: true,
+  email: true,
+  fullName: true,
+  imageUrl: true,
+  role: true,
+  createdAt: true,
+};
+
 export const authRepository = {
   updateUserById: async (userId, data) => {
     return prisma.user.update({
       where: { id: userId },
       data: {
+        // undefined is ignored by Prisma — only provided fields change.
         fullName: data.fullName,
-        imageUrl: data.imageUrl
-      }
+        imageUrl: data.imageUrl,
+      },
+      select: USER_PROFILE_SELECT,
     });
   },
 
@@ -28,20 +40,21 @@ export const authRepository = {
             price: true,
             speaker: true,
             meetingLink: true,
-          }
-        }
-      }
+          },
+        },
+      },
     });
 
-    // Only expose meetingLink for APPROVED enrollments
+    // Only expose meetingLink for APPROVED enrollments.
     return enrollments.map((enrollment) => {
       const { meetingLink, ...eventWithoutLink } = enrollment.event;
       return {
         ...enrollment,
-        event: enrollment.status === 'APPROVED'
-          ? { ...eventWithoutLink, meetingLink }
-          : eventWithoutLink,
+        event:
+          enrollment.status === 'APPROVED'
+            ? { ...eventWithoutLink, meetingLink }
+            : eventWithoutLink,
       };
     });
-  }
+  },
 };

@@ -7,10 +7,9 @@ import { authService } from './auth.service.js';
  * @access  Private
  */
 export const getMe = catchAsync(async (req, res, next) => {
-  // Read-only from the request object populated by auth middleware
   res.status(200).json({
     success: true,
-    data: req.user
+    data: req.user,
   });
 });
 
@@ -20,13 +19,12 @@ export const getMe = catchAsync(async (req, res, next) => {
  * @access  Private
  */
 export const updateMe = catchAsync(async (req, res, next) => {
-  // Delegate to service
   const updatedUser = await authService.updateProfile(req.user.id, req.body);
 
   res.status(200).json({
     success: true,
     message: 'Profile updated successfully',
-    data: updatedUser
+    data: updatedUser,
   });
 });
 
@@ -37,9 +35,9 @@ export const updateMe = catchAsync(async (req, res, next) => {
  */
 export const getMyEnrollments = catchAsync(async (req, res, next) => {
   const enrollments = await authService.getMyEnrollments(req.user.id);
-  
+
   res.status(200).json({
     success: true,
-    data: enrollments
+    data: enrollments,
   });
 });

@@ -1,12 +1,10 @@
 # IndriyaX Manual Payment & Verification Flow
 
-This document outlines the architecture and step-by-step data flow of the manual UPI payment system. Because we are bypassing automated payment gateways (like Razorpay or Stripe), the system relies on a two-step "Pending → Verification" state machine managed securely via database transactions.
+This document outlines the architecture and step-by-step data flow of the manual UPI payment system. Because we bypass automated payment gateways (Razorpay, Stripe, etc.), the system relies on a two-step **"Pending → Verification"** state machine managed securely via database transactions.
 
 ---
 
 ## 1. Flow Diagram
-
-The following sequence diagram illustrates the interaction between the User, the Next.js Frontend, the Express Backend, the Database, and the Admin.
 
 ```mermaid
 sequenceDiagram
@@ -24,9 +22,10 @@ sequenceDiagram
     Frontend->>API: POST /api/v1/payments { eventId, amount, utr, screenshotUrl }
 
     rect rgb(230, 240, 255)
-        Note over API,DB: Backend Transaction 1
+        Note over API,DB: Backend Transaction 1 (atomic)
+        API->>DB: Validate (active, paid, amount >= price, UTR unused)
         API->>DB: Create Payment (status: 'PENDING')
-        API->>DB: Create Enrollment (status: 'PENDING')
+        API->>DB: Create / recycle Enrollment (status: 'PENDING')
     end
 
     DB-->>API: Records created
@@ -42,8 +41,8 @@ sequenceDiagram
     Frontend->>API: PATCH /api/v1/payments/:id/review { status: 'SUCCESS' }
 
     rect rgb(230, 255, 230)
-        Note over API,DB: Backend Transaction 2
-        API->>DB: Update Payment (status: 'SUCCESS', reviewedById)
+        Note over API,DB: Backend Transaction 2 (atomic, guarded)
+        API->>DB: Update Payment IF still PENDING (status: 'SUCCESS', reviewedById)
         API->>DB: Update Enrollment (status: 'APPROVED')
     end
 
@@ -58,39 +57,71 @@ sequenceDiagram
 
 ### Phase 1: User Submission
 
-1. **QR Code Scan** — The user views the event details on the frontend. The frontend displays the specific UPI QR Code, UPI ID, and Price associated with that exact event (fetched from the Event database record).
-2. **Payment** — The user pays using their preferred UPI app (GPay, PhonePe, etc.) on their phone.
-3. **Form Submission** — The user receives a 12-digit UTR (Transaction ID) from their app. They enter this UTR and upload an optional screenshot of the success screen.
-4. **API Call** — The frontend sends a `POST /api/v1/payments` request containing the `eventId`, `utr`, `amount`, and `screenshotUrl`.
-5. **Backend Business Validation** — Before processing, the API verifies two things:
-   - That the event is actually a paid event (if `isFree: true`, it rejects with a `400` error).
-   - That the `amount` submitted by the user is greater than or equal to the event's `price`.
-6. **Database Transaction** — If validations pass, the Express backend opens a Prisma Transaction:
-   - It creates a `Payment` record with `status: PENDING`.
-   - It creates an `Enrollment` record with `status: PENDING`.
-   - If either creation fails, both are rolled back automatically.
+1. **QR Code Scan** — The user views the event details (via `GET /api/v1/events/:slug`, which includes the event-specific UPI QR code, UPI ID, and price) and pays in their UPI app.
+2. **Payment** — The user pays via GPay / PhonePe / etc.
+3. **Form Submission** — The user receives a UTR (transaction reference) and **uploads a screenshot** of the success screen (the screenshot is **required**; its public URL is obtained from the uploads endpoint first).
+4. **API Call** — The frontend sends `POST /api/v1/payments` with `eventId`, `amount`, `utr`, and `screenshotUrl`.
+5. **Backend Business Validation** — Before creating anything, the API verifies:
+   - The event exists and is **active** (else `404`).
+   - The event is **paid** (`isFree: false`; else `400`).
+   - `amount` is **≥** the event's `price` (no underpaying; else `400`). Overpayment is allowed.
+   - The `utr` (normalized to uppercase) is **not already used** by any payment (else `409`).
+6. **Database Transaction (atomic)** — If validation passes, a single Prisma transaction:
+   - Inspects any existing enrollment for this user+event.
+   - Creates a `Payment` (`PENDING`) and creates **or recycles** an `Enrollment` (`PENDING`) — see Retry below.
+   - Rolls everything back automatically if any step fails.
 
 ### Phase 2: Admin Verification
 
-1. **Dashboard Review** — The Admin logs into the platform, navigates to the dashboard, and views a list of pending verifications for a specific event.
-2. **Validation** — The Admin looks at the provided `utr` and `screenshotUrl`, and cross-references it with their actual bank account statement to confirm the money arrived.
-3. **Approval / Rejection:**
-   - If valid, the Admin clicks **"Approve"**.
-   - If invalid/fake, the Admin clicks **"Reject"** and provides a `rejectionReason`.
-4. **API Call** — The frontend sends a `PATCH /api/v1/payments/:id/review` request with `{ status: 'SUCCESS' }` (or `REJECTED`).
-5. **Database Transaction** — The backend opens a second Prisma transaction:
-   - If `SUCCESS`: Updates `Payment` to `SUCCESS` and `Enrollment` to `APPROVED`.
-   - If `REJECTED`: Updates `Payment` to `REJECTED` and `Enrollment` to `REJECTED`.
-   - The admin's `userId` is recorded in the `reviewedById` field for auditing purposes.
+1. **Dashboard Review** — The admin views pending verifications for an event.
+2. **Validation** — The admin inspects the `utr` and `screenshotUrl` and cross-references their bank statement.
+3. **Approve / Reject:**
+   - Valid → **Approve**.
+   - Invalid/fake → **Reject** with a `rejectionReason` (required, 5–500 chars).
+4. **API Call** — `PATCH /api/v1/payments/:id/review` with `{ status: 'SUCCESS' }` or `{ status: 'REJECTED', rejectionReason }`.
+5. **Database Transaction (atomic, guarded)** — A second Prisma transaction:
+   - Updates the payment **only if it is still `PENDING`** (a no-longer-pending payment cannot be re-processed → `409`).
+   - `SUCCESS` → Payment `SUCCESS`, Enrollment `APPROVED`. `REJECTED` → both `REJECTED`.
+   - Records the admin's id in `reviewedById` and stamps `reviewedAt`.
 
 ---
 
-## 3. Database State Matrix
+## 3. Retry After Rejection
 
-Understanding how the two tables map to each other during this flow:
+A user gets **at most one enrollment per event** (`@@unique(userId, eventId)`), but a rejection is not a dead end:
 
-| Lifecycle Stage       | Payment Model Status | Enrollment Model Status | User Access to Event |
-|-----------------------|----------------------|-------------------------|----------------------|
-| 1. Just Submitted     | `PENDING`            | `PENDING`               | ❌ Denied            |
-| 2. Admin Approved     | `SUCCESS`            | `APPROVED`              | ✅ Allowed           |
-| 3. Admin Rejected     | `REJECTED`           | `REJECTED`              | ❌ Denied            |
+| Existing enrollment state | New submission result                                                        |
+|---------------------------|------------------------------------------------------------------------------|
+| `REJECTED`                | Allowed — enrollment recycled to `PENDING`, a **new** payment is created      |
+| `PENDING`                 | Blocked (`409`) — a payment is already awaiting review                        |
+| `APPROVED`                | Blocked (`409`) — the user is already enrolled                               |
+
+- The resubmission must use a **new, unused UTR** (reusing any UTR → `409`).
+- The previous `REJECTED` payment row is **kept** for audit history; only the enrollment is reused.
+- The submission response includes `"retried": true` for resubmissions.
+
+---
+
+## 4. Database State Matrix
+
+| Lifecycle Stage             | Payment Status | Enrollment Status | User Access to Event |
+|-----------------------------|----------------|-------------------|----------------------|
+| 1. Just Submitted           | `PENDING`      | `PENDING`         | ❌ Denied            |
+| 2. Admin Approved           | `SUCCESS`      | `APPROVED`        | ✅ Allowed           |
+| 3. Admin Rejected           | `REJECTED`     | `REJECTED`        | ❌ Denied            |
+| 4. Resubmitted after reject | `PENDING` (new)| `PENDING`         | ❌ Denied            |
+
+> The old `REJECTED` payment from stage 3 persists alongside the new `PENDING` payment in stage 4. Revenue and counts are computed from `SUCCESS` / `APPROVED` records only, so historical rejected attempts never inflate totals.
+
+---
+
+## 5. Safety & Integrity Guarantees
+
+| Concern                       | Guarantee                                                                                   |
+|-------------------------------|---------------------------------------------------------------------------------------------|
+| Partial writes                | Payment + Enrollment are created/updated in a single atomic transaction                      |
+| Double submission (races)     | Enforced by the `@@unique(userId, eventId)` constraint inside the transaction                |
+| UTR reuse / fraud             | Enforced by the `@unique` constraint on `Payment.utr` (case-normalized)                      |
+| Double approval (two admins)  | Guarded conditional update — only a still-`PENDING` payment transitions; the loser gets `409` |
+| Abuse / scripted submissions  | Payment submission is rate-limited to **10 / minute / user**                                 |
+| Underpayment                  | Rejected (`amount < price` → `400`)                                                          |

@@ -11,8 +11,9 @@ export const createPayment = catchAsync(async (req, res, next) => {
 
   res.status(201).json({
     success: true,
-    message: 'Payment submitted successfully. Your enrollment is pending admin verification.',
-    data: result
+    message:
+      'Payment submitted successfully. Your enrollment is pending admin verification.',
+    data: result,
   });
 });
 
@@ -23,14 +24,15 @@ export const createPayment = catchAsync(async (req, res, next) => {
  */
 export const reviewPayment = catchAsync(async (req, res, next) => {
   const result = await paymentService.reviewPendingPayment(
-    req.params.id, 
-    req.user.id, 
+    req.params.id,
+    req.user.id,
     req.body
   );
 
+  // Build the message from the REAL resulting statuses, not the request body.
   res.status(200).json({
     success: true,
-    message: `Payment has been marked as ${req.body.status}. Enrollment is now ${result.enrollment.status}.`,
-    data: result
+    message: `Payment has been marked as ${result.payment.status}. Enrollment is now ${result.enrollment.status}.`,
+    data: result,
   });
 });

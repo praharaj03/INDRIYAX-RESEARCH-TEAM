@@ -1,5 +1,7 @@
 import { AppError } from './AppError.js';
 
+export { AppError };
+
 export class BadRequestException extends AppError {
   constructor(message = 'Bad Request') {
     super(message, 400);

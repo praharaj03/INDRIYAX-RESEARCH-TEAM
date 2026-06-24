@@ -1,29 +1,8 @@
 # Dashboard Module
 
-## Standard Response Envelope
+> All responses follow the [Standard Response Envelope](./Standard_Response_Envelope.md). Possible error codes: `400`, `401`, `403`, `404`, `429`, `500`.
 
-All **successful** responses follow this structure:
-
-```json
-{
-  "success": true,
-  "message": "Optional success message",
-  "data": { }
-}
-```
-
-All **error** responses (`400`, `401`, `403`, `404`, `500`) follow this structure:
-
-```json
-{
-  "success": false,
-  "status": "fail",
-  "message": "Error description here",
-  "errors": [
-    { "field": "fieldName", "message": "Validation message" }
-  ]
-}
-```
+All endpoints in this module are **`ADMIN` only** (`protect` + `restrictTo('ADMIN')`). A non-admin receives `403`; an unauthenticated request receives `401`.
 
 ---
 
@@ -31,13 +10,13 @@ All **error** responses (`400`, `401`, `403`, `404`, `500`) follow this structur
 
 ### 1. Get Overall Platform Statistics
 
-| Property   | Details                              |
-|------------|--------------------------------------|
-| **Route**  | `GET /api/v1/dashboard/overall`      |
-| **Access** | Private (ADMIN only)                 |
-| **Status** | `200 OK`                             |
+| Property   | Details                         |
+|------------|---------------------------------|
+| **Route**  | `GET /api/v1/dashboard/overall` |
+| **Access** | Private (`ADMIN` only)          |
+| **Status** | `200 OK`                        |
 
-**Description:** Returns high-level metrics for the entire platform, including total earnings, user counts, and month-wise engagement data formatted for charting libraries.
+**Description:** High-level platform metrics — total earnings, counts, and a month-by-month engagement series formatted for charting libraries.
 
 #### Response
 
@@ -52,9 +31,12 @@ All **error** responses (`400`, `401`, `403`, `404`, `500`) follow this structur
       "totalSuccessfulEnrollments": 180
     },
     "engagementChart": [
-      { "month": "Jan 2026", "enrollments": 15 },
+      { "month": "Jan 2026", "enrollments": 0 },
       { "month": "Feb 2026", "enrollments": 42 },
-      { "month": "Mar 2026", "enrollments": 60 }
+      { "month": "Mar 2026", "enrollments": 60 },
+      { "month": "Apr 2026", "enrollments": 18 },
+      { "month": "May 2026", "enrollments": 33 },
+      { "month": "Jun 2026", "enrollments": 27 }
     ]
   }
 }
@@ -62,39 +44,39 @@ All **error** responses (`400`, `401`, `403`, `404`, `500`) follow this structur
 
 #### `overview` Field Reference
 
-| Field                        | Type     | Description                                                   |
+| Field                        | Type     | Description                                                    |
 |------------------------------|----------|---------------------------------------------------------------|
-| `totalEarnings`              | `number` | Sum of all revenue from `SUCCESS` payments across all events  |
-| `totalEventsConducted`       | `number` | Total number of events that have been created on the platform |
+| `totalEarnings`              | `number` | Sum of `amount` from all `SUCCESS` payments across all events  |
+| `totalEventsConducted`       | `number` | Total number of events created on the platform                |
 | `totalUsers`                 | `number` | Total registered user accounts                                |
-| `totalSuccessfulEnrollments` | `number` | Total enrollments with an `APPROVED` status                   |
+| `totalSuccessfulEnrollments` | `number` | Total enrollments with `APPROVED` status                      |
 
 #### `engagementChart` Field Reference
 
-| Field         | Type     | Description                                                          |
-|---------------|----------|----------------------------------------------------------------------|
-| `month`       | `string` | Month label formatted as `"MMM YYYY"` (e.g. `"Jan 2026"`)           |
-| `enrollments` | `number` | Total approved enrollments recorded in that calendar month           |
+| Field         | Type     | Description                                              |
+|---------------|----------|----------------------------------------------------------|
+| `month`       | `string` | Month label, format `"MMM YYYY"` (e.g. `"Jan 2026"`)    |
+| `enrollments` | `number` | Count of `APPROVED` enrollments created in that month   |
 
-> The `engagementChart` array is pre-sorted chronologically and can be passed directly into charting libraries such as **Recharts**, **Chart.js**, or **Victory** without any transformation.
+> **Chart contract — always exactly 6 entries, oldest → newest, with no gaps.** The series spans the **last 6 calendar months including the current month**. Months with no approved enrollments are included with `enrollments: 0` (not omitted), so the array can be passed straight into **Recharts / Chart.js / Victory** without holes or pre-processing. Enrollments are bucketed by their creation month.
 
 ---
 
 ### 2. Get Event-Specific Statistics
 
-| Property   | Details                                       |
-|------------|-----------------------------------------------|
-| **Route**  | `GET /api/v1/dashboard/events/:eventId`       |
-| **Access** | Private (ADMIN only)                          |
-| **Status** | `200 OK`                                      |
+| Property   | Details                                 |
+|------------|-----------------------------------------|
+| **Route**  | `GET /api/v1/dashboard/events/:eventId` |
+| **Access** | Private (`ADMIN` only)                  |
+| **Status** | `200 OK`                                |
 
-**Description:** Returns a deep-dive breakdown for a single event — including the revenue it generated, the status of all ticket requests, and a full list of approved participants with their user details.
+**Description:** Deep-dive breakdown for a single event — revenue, enrollment-status counts, the list of approved participants, and the queue of pending payments awaiting verification.
 
 #### Path Parameters
 
-| Parameter | Type     | Description            |
-|-----------|----------|------------------------|
-| `eventId` | `string` | CUID of the event      |
+| Parameter | Type     | Description                                  |
+|-----------|----------|----------------------------------------------|
+| `eventId` | `string` | CUID of the event. Malformed ids return `400` |
 
 #### Response
 
@@ -127,6 +109,20 @@ All **error** responses (`400`, `401`, `403`, `404`, `500`) follow this structur
           "imageUrl": "https://..."
         }
       }
+    ],
+    "pendingRequests": [
+      {
+        "paymentId": "cuid-payment-id",
+        "utr": "ABCD12345678",
+        "screenshotUrl": "https://...",
+        "amount": 500,
+        "submittedAt": "2026-05-21T14:30:00.000Z",
+        "user": {
+          "id": "uuid-user-id",
+          "fullName": "Bob Singh",
+          "email": "bob@example.com"
+        }
+      }
     ]
   }
 }
@@ -138,8 +134,8 @@ All **error** responses (`400`, `401`, `403`, `404`, `500`) follow this structur
 |------------|-----------|--------------------------------------------------------------------|
 | `id`       | `string`  | Unique event identifier (CUID)                                     |
 | `title`    | `string`  | Event title                                                        |
-| `isFree`   | `boolean` | Indicates if the event requires payment                            |
-| `price`    | `number`  | Ticket price in currency units (will be `0` if `isFree` is `true`) |
+| `isFree`   | `boolean` | Whether the event requires payment                                 |
+| `price`    | `number`  | Ticket price (whole units; `0` when `isFree` is `true`)           |
 | `date`     | `string`  | ISO 8601 datetime of the event                                     |
 | `isActive` | `boolean` | Whether the event is publicly visible                              |
 
@@ -147,20 +143,52 @@ All **error** responses (`400`, `401`, `403`, `404`, `500`) follow this structur
 
 | Field                  | Type     | Description                                                          |
 |------------------------|----------|----------------------------------------------------------------------|
-| `totalRevenue`         | `number` | Sum of all `amount` values from `SUCCESS` payments for this event    |
+| `totalRevenue`         | `number` | Sum of `amount` from `SUCCESS` payments for this event              |
 | `approvedParticipants` | `number` | Count of enrollments with `APPROVED` status                          |
-| `pendingVerifications` | `number` | Count of enrollments still in `PENDING` status awaiting admin review |
+| `pendingVerifications` | `number` | Count of enrollments still `PENDING` admin review                    |
 | `rejectedRequests`     | `number` | Count of enrollments with `REJECTED` status                          |
 
-#### `participants` Array — Item Field Reference
+#### `participants[]` — Item Field Reference
+
+> Contains only `APPROVED` enrollments. Pending and rejected entries are reflected in `stats` but not listed here.
+
+| Field           | Type     | Description                                            |
+|-----------------|----------|--------------------------------------------------------|
+| `enrollmentId`  | `string` | Unique enrollment identifier (CUID)                    |
+| `enrolledAt`    | `string` | ISO 8601 timestamp of when the enrollment was **approved** |
+| `user.id`       | `string` | Unique user identifier (UUID)                          |
+| `user.fullName` | `string` | Participant's full name                                |
+| `user.email`    | `string` | Participant's registered email address                 |
+| `user.imageUrl` | `string` | URL to the participant's profile picture               |
+
+#### `pendingRequests[]` — Item Field Reference
+
+> The queue of payments **awaiting verification** for this event (status `PENDING`), **oldest first** so admins can clear the queue in order. Each entry is the data an admin needs to verify a manual UPI payment and then call `PATCH /api/v1/payments/:id/review`.
 
 | Field           | Type     | Description                                              |
 |-----------------|----------|----------------------------------------------------------|
-| `enrollmentId`  | `string` | Unique enrollment identifier (CUID)                      |
-| `enrolledAt`    | `string` | ISO 8601 timestamp of when the enrollment was approved   |
-| `user.id`       | `string` | Unique user identifier (UUID)                            |
-| `user.fullName` | `string` | Participant's full name                                  |
-| `user.email`    | `string` | Participant's registered email address                   |
-| `user.imageUrl` | `string` | URL to the participant's profile picture                 |
+| `paymentId`     | `string` | Payment id to pass to the review endpoint (CUID)        |
+| `utr`           | `string` | The UTR / transaction reference to cross-check in the bank app |
+| `screenshotUrl` | `string` | URL of the user-submitted payment screenshot            |
+| `amount`        | `number` | Amount the user claims to have paid (verify against `price`) |
+| `submittedAt`   | `string` | ISO 8601 timestamp of when the payment was submitted    |
+| `user.id`       | `string` | Submitter's user id (UUID)                              |
+| `user.fullName` | `string` | Submitter's full name                                   |
+| `user.email`    | `string` | Submitter's email                                       |
 
-> Only enrollments with an `APPROVED` status are included in the `participants` array. Pending and rejected entries are counted in `stats` but are not listed here.
+#### Errors
+
+| Status | `message`                  | Cause                              |
+|--------|----------------------------|------------------------------------|
+| `400`  | `Invalid event ID format.` | `eventId` is not a valid CUID      |
+| `404`  | `Event not found`          | No event with that id              |
+
+---
+
+## Notes on Retries & Counts
+
+Because a user may **retry** a payment after rejection (see [Payments](./payments_docs.md)), an event can accumulate multiple payment rows for the same user — at most one of which is `SUCCESS`. All figures here are status-scoped so retries never distort them:
+
+- `totalRevenue` / `totalEarnings` sum **`SUCCESS`** payments only — rejected retry attempts contribute nothing.
+- `approvedParticipants` and the participant list count **`APPROVED`** enrollments only (one per user per event).
+- `pendingRequests` lists current **`PENDING`** payments; once reviewed, a payment leaves this queue.

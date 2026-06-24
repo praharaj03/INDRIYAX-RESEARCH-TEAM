@@ -1,29 +1,6 @@
 # Uploads Module
 
-## Standard Response Envelope
-
-All **successful** responses follow this structure:
-
-```json
-{
-  "success": true,
-  "message": "Optional success message",
-  "data": { }
-}
-```
-
-All **error** responses (`400`, `401`, `403`, `404`, `500`) follow this structure:
-
-```json
-{
-  "success": false,
-  "status": "fail",
-  "message": "Error description here",
-  "errors": [
-    { "field": "fieldName", "message": "Validation message" }
-  ]
-}
-```
+> All responses follow the [Standard Response Envelope](./Standard_Response_Envelope.md). Possible error codes: `400`, `401`, `429`, `500`, `502`.
 
 ---
 
@@ -31,11 +8,13 @@ All **error** responses (`400`, `401`, `403`, `404`, `500`) follow this structur
 
 ### 1. Upload Image
 
-| Property   | Details                          |
-|------------|----------------------------------|
-| **Route**  | `POST /api/v1/uploads/image`     |
-| **Access** | Private (AUTHOR, ADMIN)          |
-| **Status** | `200 OK`                         |
+| Property   | Details                       |
+|------------|-------------------------------|
+| **Route**  | `POST /api/v1/uploads/image`  |
+| **Access** | Private (any logged-in user)  |
+| **Status** | `200 OK`                      |
+
+> **Access:** Any authenticated user may upload. This endpoint backs **profile-picture** uploads as well as event/post images. The upload returns a URL but attaches it to nothing — using that URL on a protected resource (creating an event or post) is separately access-controlled.
 
 #### Request Format
 
@@ -43,18 +22,24 @@ All **error** responses (`400`, `401`, `403`, `404`, `500`) follow this structur
 
 #### Form Fields
 
-| Field    | Type     | Required | Description                                                        |
-|----------|----------|----------|--------------------------------------------------------------------|
-| `file`   | `File`   | Yes      | The image file to upload. Maximum size: **5 MB**                   |
-| `folder` | `string` | No       | Destination folder name in storage (e.g., `"events"`, `"posts"`)  |
+| Field    | Type     | Required | Description                                                                                  |
+|----------|----------|----------|----------------------------------------------------------------------------------------------|
+| `file`   | `File`   | Yes      | The image to upload. Field name **must** be `file`. Maximum size **5 MB**                     |
+| `folder` | `string` | No       | Destination folder. Must be one of the allowed values below; any other value (or omission) falls back to `misc` |
+
+#### Allowed Folders
+
+`events` · `posts` · `avatars` · `misc`
+
+> Folder values are whitelisted to prevent arbitrary or hostile storage paths (e.g. path traversal via `../`). An unrecognized folder is silently coerced to `misc`.
 
 #### Supported File Types
 
-| Type  | Extensions              |
-|-------|-------------------------|
+| Type  | Extensions                               |
+|-------|------------------------------------------|
 | Image | `.jpg`, `.jpeg`, `.png`, `.webp`, `.gif` |
 
-> Files exceeding **5 MB** will be rejected with a `400 Bad Request` error.
+> Both the file's **MIME type** *and* its **extension** are validated against this allow-list — a forged MIME header alone will not pass. **SVG is intentionally not supported**, because it can embed scripts and would be a stored-XSS risk when served from our domain.
 
 #### Response
 
@@ -63,16 +48,16 @@ All **error** responses (`400`, `401`, `403`, `404`, `500`) follow this structur
   "success": true,
   "message": "File uploaded successfully",
   "data": {
-    "url": "https://[SUPABASE_URL]/storage/v1/object/public/indriyax-assets/events/1684719234-12345.jpg"
+    "url": "https://[SUPABASE_URL]/storage/v1/object/public/indriyax-assets/avatars/1684719234-12345.jpg"
   }
 }
 ```
 
 #### Response Field Reference
 
-| Field | Type     | Description                                              |
-|-------|----------|----------------------------------------------------------|
-| `url` | `string` | Fully qualified public URL of the uploaded image in Supabase Storage |
+| Field | Type     | Description                                  |
+|-------|----------|----------------------------------------------|
+| `url` | `string` | Fully qualified public URL of the uploaded image |
 
 #### URL Structure
 
@@ -80,27 +65,30 @@ All **error** responses (`400`, `401`, `403`, `404`, `500`) follow this structur
 https://[SUPABASE_URL]/storage/v1/object/public/indriyax-assets/{folder}/{timestamp}-{random}.{ext}
 ```
 
-| Segment       | Description                                          |
-|---------------|------------------------------------------------------|
-| `SUPABASE_URL`| Your project's Supabase base URL                     |
-| `folder`      | The folder value passed in the request (or root if omitted) |
-| `timestamp`   | Unix timestamp at time of upload                     |
-| `random`      | Random number to prevent filename collisions         |
-| `ext`         | Original file extension                              |
+| Segment        | Description                                       |
+|----------------|---------------------------------------------------|
+| `SUPABASE_URL` | Your project's Supabase base URL                  |
+| `folder`       | The (whitelisted) folder value                    |
+| `timestamp`    | Unix timestamp at time of upload                  |
+| `random`       | Random number to prevent filename collisions      |
+| `ext`          | Extension derived from the validated MIME type    |
 
-#### Example Usage
+#### Example
 
 ```bash
 curl -X POST https://api.example.com/api/v1/uploads/image \
   -H "Authorization: Bearer <token>" \
   -F "file=@/path/to/image.jpg" \
-  -F "folder=events"
+  -F "folder=avatars"
 ```
 
-#### Common Errors
+#### Errors
 
-| Status | Cause                                              |
-|--------|----------------------------------------------------|
-| `400`  | File missing, file too large (>5 MB), or unsupported file type |
-| `401`  | User is not authenticated                          |
-| `403`  | User does not have `AUTHOR` or `ADMIN` role        |
+| Status | `message`                                                       | Cause                                  |
+|--------|-----------------------------------------------------------------|----------------------------------------|
+| `400`  | `No image file provided. Use form field "file".`                | No file sent / wrong field name        |
+| `400`  | `Unsupported file type. Allowed: JPG, JPEG, PNG, WEBP, GIF.`     | Disallowed MIME type or extension      |
+| `400`  | `File too large. Maximum allowed size is 5 MB.`                 | File exceeds 5 MB                       |
+| `401`  | _(auth message)_                                                | Not authenticated                      |
+| `429`  | `Too many requests. Please slow down and try again shortly.`    | Rate limit exceeded                    |
+| `502`  | `Failed to upload file to storage. Please try again.`           | Storage backend (Supabase) error       |

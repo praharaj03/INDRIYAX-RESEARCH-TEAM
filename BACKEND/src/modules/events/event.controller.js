@@ -11,7 +11,7 @@ export const createEvent = catchAsync(async (req, res, next) => {
   res.status(201).json({
     success: true,
     message: 'Event created successfully',
-    data: event
+    data: event,
   });
 });
 
@@ -21,13 +21,12 @@ export const createEvent = catchAsync(async (req, res, next) => {
  * @access  Public
  */
 export const getEvents = catchAsync(async (req, res, next) => {
-  // Check if user is logged in and is an admin
   const isAdmin = req.user && req.user.role === 'ADMIN';
   const events = await eventService.getAllEvents(isAdmin);
-  
+
   res.status(200).json({
     success: true,
-    data: events
+    data: events,
   });
 });
 
@@ -40,7 +39,7 @@ export const getEvent = catchAsync(async (req, res, next) => {
   const event = await eventService.getEventBySlug(req.params.slug);
   res.status(200).json({
     success: true,
-    data: event
+    data: event,
   });
 });
 
@@ -54,7 +53,7 @@ export const updateEvent = catchAsync(async (req, res, next) => {
   res.status(200).json({
     success: true,
     message: 'Event updated successfully',
-    data: event
+    data: event,
   });
 });
 
@@ -67,6 +66,6 @@ export const deleteEvent = catchAsync(async (req, res, next) => {
   await eventService.deleteEvent(req.params.id);
   res.status(200).json({
     success: true,
-    message: 'Event deleted successfully'
+    message: 'Event deleted successfully',
   });
 });

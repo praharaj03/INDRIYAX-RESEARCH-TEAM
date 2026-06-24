@@ -1,106 +1,148 @@
-import { createClient } from '@supabase/supabase-js'
-import prisma from '../config/prisma.config.js'
+import crypto from 'node:crypto';
+import { createRemoteJWKSet, jwtVerify } from 'jose';
+import prisma from '../config/prisma.config.js';
+import { config } from '../config/env.config.js';
+import {
+  UnauthorizedException,
+  ForbiddenException,
+} from '../shared/exceptions/index.js';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
+// Supabase asymmetric signing keys are published as a JWKS. createRemoteJWKSet
+// fetches once, caches in memory, and auto-refetches when it sees an unknown
+// key id (kid) — so key rotation needs zero code changes and adds no per-request
+// network call on the hot path.
+const JWKS = createRemoteJWKSet(
+  new URL(`${String(config.supabase.url).replace(/\/$/, '')}/auth/v1/.well-known/jwks.json`)
+);
 
-// Upsert a system admin user in the DB for admin API key usage
+const JWT_ISSUER = `${String(config.supabase.url).replace(/\/$/, '')}/auth/v1`;
+const JWT_AUDIENCE = 'authenticated';
+
+const USER_PROFILE_SELECT = {
+  id: true,
+  email: true,
+  fullName: true,
+  imageUrl: true,
+  role: true,
+  createdAt: true,
+};
+
+const timingSafeMatch = (a, b) => {
+  if (!a || !b) return false;
+  const ha = crypto.createHash('sha256').update(String(a)).digest();
+  const hb = crypto.createHash('sha256').update(String(b)).digest();
+  return crypto.timingSafeEqual(ha, hb);
+};
+
+let cachedAdminUser = null;
 const getOrCreateAdminUser = async () => {
-  const adminEmail = 'admin@indriyax.com'
-  const adminId   = 'admin-system-user-indriyax'
+  if (cachedAdminUser) return cachedAdminUser;
+  cachedAdminUser = await prisma.user.upsert({
+    where: { id: 'admin-system-user-indriyax' },
+    update: { role: 'ADMIN' },
+    create: {
+      id: 'admin-system-user-indriyax',
+      email: 'admin@indriyax.com',
+      fullName: 'IndriyaX Admin',
+      role: 'ADMIN',
+    },
+    select: USER_PROFILE_SELECT,
+  });
+  return cachedAdminUser;
+};
 
-  let user = await prisma.user.findUnique({ where: { id: adminId } })
-  if (!user) {
-    user = await prisma.user.upsert({
-      where:  { email: adminEmail },
-      update: { role: 'ADMIN' },
-      create: {
-        id:       adminId,
-        email:    adminEmail,
-        fullName: 'IndriyaX Admin',
-        role:     'ADMIN',
-      },
-    })
+const resolveDbUser = async (claims) => {
+  const userId = claims.sub;
+  const email = claims.email ?? null;
+
+  const existing = await prisma.user.findUnique({
+    where: { id: userId },
+    select: USER_PROFILE_SELECT,
+  });
+
+  if (existing) {
+    if (email && existing.email !== email) {
+      return prisma.user.update({
+        where: { id: userId },
+        data: { email },
+        select: USER_PROFILE_SELECT,
+      });
+    }
+    return existing;
   }
-  return user
-}
+
+  const metadata = claims.user_metadata ?? {};
+  return prisma.user.upsert({
+    where: { id: userId },
+    update: { email: email ?? undefined },
+    create: {
+      id: userId,
+      email,
+      fullName: metadata.full_name ?? null,
+      imageUrl: metadata.avatar_url ?? null,
+      role: 'USER',
+    },
+    select: USER_PROFILE_SELECT,
+  });
+};
 
 export const protect = async (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization
-
-    if (!authHeader?.startsWith('Bearer ')) {
-      return res.status(401).json({
-        success: false,
-        message: 'No token provided'
-      })
+    const authHeader = req.headers.authorization || '';
+    if (!authHeader.startsWith('Bearer ')) {
+      return next(new UnauthorizedException('No authentication token provided.'));
     }
 
-    const token = authHeader.split(' ')[1]
+    const token = authHeader.slice(7).trim();
+    if (!token) {
+      return next(new UnauthorizedException('No authentication token provided.'));
+    }
 
     // ── Admin API key shortcut ──────────────────────────────────────────
-    const adminApiKey = process.env.ADMIN_API_KEY
-    if (adminApiKey && token === adminApiKey) {
-      const adminUser = await getOrCreateAdminUser()
-      req.user = adminUser          // real DB user with role: 'ADMIN'
-      return next()
+    const adminApiKey = process.env.ADMIN_API_KEY;
+    if (adminApiKey && timingSafeMatch(token, adminApiKey)) {
+      req.user = await getOrCreateAdminUser();
+      return next();
     }
 
-    // ── Supabase JWT ────────────────────────────────────────────────────
-    const { data, error } = await supabase.auth.getUser(token)
-
-    if (error || !data?.user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid or expired token.'
-      })
+    // ── Supabase JWT — verified locally against the cached JWKS ─────────
+    let claims;
+    try {
+      const { payload } = await jwtVerify(token, JWKS, {
+        issuer: JWT_ISSUER,
+        audience: JWT_AUDIENCE,
+        // Pin to the asymmetric algorithms Supabase actually uses. Confirm
+        // yours from the token header — keep only the one(s) that apply.
+        algorithms: ['ES256', 'RS256'],
+      });
+      claims = payload;
+    } catch {
+      return next(
+        new UnauthorizedException('Invalid or expired session. Please log in again.')
+      );
     }
 
-    // Sync Supabase user into our DB (upsert so first-time users are created)
-    const supabaseUser = data.user
-    const dbUser = await prisma.user.upsert({
-      where:  { id: supabaseUser.id },
-      update: { email: supabaseUser.email },
-      create: {
-        id:       supabaseUser.id,
-        email:    supabaseUser.email,
-        fullName: supabaseUser.user_metadata?.full_name ?? null,
-        imageUrl: supabaseUser.user_metadata?.avatar_url ?? null,
-        role:     'USER',
-      },
-    })
+    if (!claims.sub) {
+      return next(new UnauthorizedException('Invalid authentication token.'));
+    }
 
-    req.user = dbUser
-    next()
+    req.user = await resolveDbUser(claims);
+    return next();
   } catch (err) {
-    console.error('AUTH ERROR:', err)
-    return res.status(401).json({
-      success: false,
-      message: 'Authentication failed'
-    })
+    return next(err);
   }
-}
+};
 
 export const restrictTo = (...roles) => {
   return (req, res, next) => {
     if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Unauthorized'
-      })
+      return next(new UnauthorizedException('Authentication required.'));
     }
-
-    if (!roles.length) return next()
-
-    if (!roles.includes(req.user.role)) {
-      return res.status(403).json({
-        success: false,
-        message: `Forbidden: requires role ${roles.join(' or ')}`
-      })
+    if (roles.length && !roles.includes(req.user.role)) {
+      return next(
+        new ForbiddenException('You do not have permission to perform this action.')
+      );
     }
-
-    next()
-  }
-}
+    return next();
+  };
+};

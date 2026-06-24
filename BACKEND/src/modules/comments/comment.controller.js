@@ -10,7 +10,7 @@ export const getComments = catchAsync(async (req, res, next) => {
   const comments = await commentService.getCommentsForPost(req.params.postId);
   res.status(200).json({
     success: true,
-    data: comments
+    data: comments,
   });
 });
 
@@ -24,7 +24,7 @@ export const createComment = catchAsync(async (req, res, next) => {
   res.status(201).json({
     success: true,
     message: 'Comment posted successfully',
-    data: comment
+    data: comment,
   });
 });
 
@@ -38,7 +38,7 @@ export const updateComment = catchAsync(async (req, res, next) => {
   res.status(200).json({
     success: true,
     message: 'Comment updated successfully',
-    data: comment
+    data: comment,
   });
 });
 
@@ -51,6 +51,6 @@ export const deleteComment = catchAsync(async (req, res, next) => {
   await commentService.deleteComment(req.params.id, req.user);
   res.status(200).json({
     success: true,
-    message: 'Comment deleted successfully'
+    message: 'Comment deleted successfully',
   });
 });

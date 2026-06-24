@@ -11,33 +11,34 @@ export const createPost = catchAsync(async (req, res, next) => {
   res.status(201).json({
     success: true,
     message: 'Post created successfully',
-    data: post
+    data: post,
   });
 });
 
 /**
  * @desc    Get all posts (Public sees published, privileged sees all)
  * @route   GET /api/v1/posts
- * @access  Public
+ * @access  Public (optional auth)
  */
 export const getPosts = catchAsync(async (req, res, next) => {
   const posts = await postService.getAllPosts(req.user);
   res.status(200).json({
     success: true,
-    data: posts
+    data: posts,
   });
 });
 
 /**
  * @desc    Get a single post by slug
  * @route   GET /api/v1/posts/:slug
- * @access  Public
+ * @access  Public (optional auth)
  */
 export const getPost = catchAsync(async (req, res, next) => {
-  const post = await postService.getPostBySlug(req.params.slug);
+  // Pass the (optional) user so the service can enforce draft/premium rules.
+  const post = await postService.getPostBySlug(req.params.slug, req.user);
   res.status(200).json({
     success: true,
-    data: post
+    data: post,
   });
 });
 
@@ -51,7 +52,7 @@ export const updatePost = catchAsync(async (req, res, next) => {
   res.status(200).json({
     success: true,
     message: 'Post updated successfully',
-    data: post
+    data: post,
   });
 });
 
@@ -64,6 +65,6 @@ export const deletePost = catchAsync(async (req, res, next) => {
   await postService.deletePost(req.params.id, req.user);
   res.status(200).json({
     success: true,
-    message: 'Post deleted successfully'
+    message: 'Post deleted successfully',
   });
 });

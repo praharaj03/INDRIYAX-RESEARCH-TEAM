@@ -6,31 +6,59 @@ import { BadRequestException } from '../../shared/exceptions/index.js';
 
 const router = Router();
 
-// Configure Multer storage (Memory)
+// In-memory buffer (no disk writes) — the buffer is streamed straight to Supabase.
 const storage = multer.memoryStorage();
 
-// Multer file filter to ensure only images are uploaded
+// Allow-list from upload_docs.md. We check BOTH the declared MIME type and the
+// file extension — the MIME header is client-controlled and trivially forged,
+// so it alone is not a safe gate. SVG is deliberately excluded: it can carry
+// inline <script>, and serving it from our own domain would be stored XSS.
+const ALLOWED_MIME = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+]);
+const ALLOWED_EXT = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif']);
+
+const getExtension = (filename = '') => {
+  const parts = filename.toLowerCase().split('.');
+  return parts.length > 1 ? parts.pop() : '';
+};
+
 const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('image/')) {
-    cb(null, true);
-  } else {
-    cb(new BadRequestException('Not an image! Please upload only images.'), false);
+  const mimeOk = ALLOWED_MIME.has(file.mimetype);
+  const extOk = ALLOWED_EXT.has(getExtension(file.originalname));
+
+  if (mimeOk && extOk) {
+    return cb(null, true);
   }
+  // Operational error → reaches the client as a clean, actionable 400.
+  return cb(
+    new BadRequestException(
+      'Unsupported file type. Allowed: JPG, JPEG, PNG, WEBP, GIF.'
+    ),
+    false
+  );
 };
 
 const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
-  }
+    fileSize: 5 * 1024 * 1024, // 5 MB — matches the docs; LIMIT_FILE_SIZE is
+    files: 1,                  // mapped to a clean 400 by the global handler.
+    fields: 5,                 // we only need `folder`; cap stray form fields.
+    fieldNameSize: 100,
+    fieldSize: 1024,           // a 'folder' value is tiny; reject oversized fields.
+  },
 });
 
-// ANY logged-in user can access upload routes (required for avatars)
+// Every upload route requires authentication. Open to ANY logged-in user
+// (normal users upload profile images here).
 router.use(protect);
 
-// POST /api/v1/uploads/image
-// Expects a form-data payload with a key named 'file'
+// POST /api/v1/uploads/image — multipart/form-data, file field name: "file".
 router.post('/image', upload.single('file'), uploadImage);
 
 export default router;
