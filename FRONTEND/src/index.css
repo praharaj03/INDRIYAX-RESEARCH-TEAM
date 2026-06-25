@@ -2,9 +2,28 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Base layer resets for a clean slate */
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-900 antialiased;
+    @apply bg-indriya-bg text-indriya-text dark:bg-indriya-darkBg dark:text-indriya-darkText antialiased transition-colors duration-300;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-indriya-border dark:bg-indriya-darkBorder rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-indriya-muted dark:bg-indriya-darkMuted;
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-8px); }
 }

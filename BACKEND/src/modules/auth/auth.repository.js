@@ -1,6 +1,5 @@
 import prisma from '../../config/prisma.config.js';
 
-// Exactly the public profile contract from the /me docs.
 const USER_PROFILE_SELECT = {
   id: true,
   email: true,
@@ -11,14 +10,24 @@ const USER_PROFILE_SELECT = {
 };
 
 export const authRepository = {
+  // Lean read used to capture the old photo before an update overwrites it.
+  findUserImageUrl: async (userId) => {
+    return prisma.user.findUnique({
+      where: { id: userId },
+      select: { imageUrl: true },
+    });
+  },
+
   updateUserById: async (userId, data) => {
+    // Absent key = unchanged; explicit null = cleared. (See the remove-photo
+    // feature: imageUrl absent vs imageUrl: null.)
+    const updateData = {};
+    if (data.fullName !== undefined) updateData.fullName = data.fullName;
+    if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl;
+
     return prisma.user.update({
       where: { id: userId },
-      data: {
-        // undefined is ignored by Prisma — only provided fields change.
-        fullName: data.fullName,
-        imageUrl: data.imageUrl,
-      },
+      data: updateData,
       select: USER_PROFILE_SELECT,
     });
   },
@@ -45,7 +54,6 @@ export const authRepository = {
       },
     });
 
-    // Only expose meetingLink for APPROVED enrollments.
     return enrollments.map((enrollment) => {
       const { meetingLink, ...eventWithoutLink } = enrollment.event;
       return {

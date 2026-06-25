@@ -1,19 +1,8 @@
-import jwt from 'jsonwebtoken';
 import prisma from '../config/prisma.config.js';
-import { config } from '../config/env.config.js';
+import { verifySupabaseToken } from '../shared/utils/verifySupabaseToken.js';
 
-// Mirrors the verification in protect, but NEVER blocks. Used on public routes
-// (like GET /events) that show extra data to logged-in admins but must still
-// work for anonymous visitors. No token / bad token => req.user stays undefined.
-const JWT_SECRET = config.supabase.jwtSecret;
-const JWT_ISSUER = `${String(config.supabase.url).replace(/\/$/, '')}/auth/v1`;
-const JWT_AUDIENCE = 'authenticated';
-const VERIFY_OPTIONS = {
-  algorithms: ['HS256'], // keep in sync with protect (swap to JWKS if asymmetric)
-  issuer: JWT_ISSUER,
-  audience: JWT_AUDIENCE,
-};
-
+// Non-blocking optional auth for public routes. Verifies via the SAME shared
+// helper protect uses, so the two can't drift. No / bad token => anonymous.
 const USER_PROFILE_SELECT = {
   id: true,
   email: true,
@@ -33,9 +22,9 @@ export const softAuth = async (req, res, next) => {
 
     let claims;
     try {
-      claims = jwt.verify(token, JWT_SECRET, VERIFY_OPTIONS);
+      claims = await verifySupabaseToken(token);
     } catch {
-      // Bad/expired token on a PUBLIC route → just proceed anonymously.
+      // Bad/expired token on a PUBLIC route → proceed anonymously, don't block.
       return next();
     }
 
@@ -48,7 +37,6 @@ export const softAuth = async (req, res, next) => {
     }
     return next();
   } catch {
-    // Never let optional auth break a public route.
-    return next();
+    return next(); // optional auth must never break a public route
   }
 };

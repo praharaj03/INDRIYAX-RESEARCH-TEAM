@@ -15,9 +15,9 @@ export const updateProfileSchema = z.object({
         .url('Invalid image URL format')
         .max(2048, 'Image URL is too long')
         .refine((val) => /^https?:\/\//i.test(val), 'Image URL must use http:// or https://')
-        .optional(),
+        .nullable() // allow null = "remove my photo"
+        .optional(), // absent = "keep my current photo"
     })
-    // email and role are impossible to set here — and now rejected, not ignored.
     .strict()
     .refine((data) => data.fullName !== undefined || data.imageUrl !== undefined, {
       message: 'Provide at least one field to update (fullName or imageUrl)',

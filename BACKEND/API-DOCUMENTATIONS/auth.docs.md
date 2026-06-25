@@ -55,7 +55,7 @@ The token is verified **locally** (signature, expiry, issuer, audience) on every
 | `id`        | `string`         | Unique user identifier (Supabase UUID)   |
 | `email`     | `string`         | Registered email address                 |
 | `fullName`  | `string \| null` | Display name (may be `null` until set)   |
-| `imageUrl`  | `string \| null` | Profile picture URL (may be `null`)      |
+| `imageUrl`  | `string \| null` | Profile picture URL (`null` if the user has no photo) |
 | `role`      | `string`         | `USER`, `AUTHOR`, or `ADMIN`             |
 | `createdAt` | `string`         | ISO 8601 account creation timestamp      |
 
@@ -82,16 +82,42 @@ The token is verified **locally** (signature, expiry, issuer, audience) on every
 
 #### Payload Fields
 
-| Field      | Type     | Required | Rules                              |
-|------------|----------|----------|------------------------------------|
-| `fullName` | `string` | No       | Trimmed; 2–100 characters          |
-| `imageUrl` | `string` | No       | Valid `http(s)` URL; max 2048 chars |
+| Field      | Type              | Required | Rules                                                        |
+|------------|-------------------|----------|--------------------------------------------------------------|
+| `fullName` | `string`          | No       | Trimmed; 2–100 characters                                   |
+| `imageUrl` | `string` \| `null`| No       | A valid `http(s)` URL (max 2048 chars) to **set/replace** the photo, or `null` to **remove** it |
+
+#### Profile Photo: Set, Replace, or Remove
+
+The behavior depends on whether `imageUrl` is present in the body, and its value:
+
+| Intent                  | Send                          | Effect                                    |
+|-------------------------|-------------------------------|-------------------------------------------|
+| **Keep** current photo  | omit `imageUrl` entirely      | Photo unchanged                           |
+| **Set / replace** photo | `"imageUrl": "https://..."`   | Photo updated to the new URL              |
+| **Remove** photo        | `"imageUrl": null`            | Photo cleared — `imageUrl` becomes `null` |
+
+> **Storage cleanup:** when a photo is **removed** or **replaced**, the previously uploaded file is automatically deleted from storage (best-effort) so orphaned avatars don't accumulate. This cleanup never blocks or fails the profile update — if it can't delete the old file, the update still succeeds.
+
+##### Example — remove the photo
+
+```json
+{ "imageUrl": null }
+```
+
+```js
+await fetch('/api/v1/auth/me', {
+  method: 'PATCH',
+  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+  body: JSON.stringify({ imageUrl: null }),
+});
+```
 
 #### Validation Rules
 
-- **At least one field is required.** An empty body returns `400` — `Provide at least one field to update (fullName or imageUrl)`.
+- **At least one field is required.** An empty body returns `400` — `Provide at least one field to update (fullName or imageUrl)`. (Note: `"imageUrl": null` counts as a field, so removing the photo alone is a valid request.)
 - **Unknown fields are rejected.** Sending `email`, `role`, or any other key returns `400`. These are immutable via this endpoint and are **not** silently dropped.
-- `imageUrl` must begin with `http://` or `https://` (blocks `javascript:`, `data:`, `file:` URLs).
+- When `imageUrl` is a string, it must begin with `http://` or `https://` (blocks `javascript:`, `data:`, `file:` URLs). `null` is the only non-URL value accepted.
 
 #### Response
 
@@ -103,7 +129,7 @@ The token is verified **locally** (signature, expiry, issuer, audience) on every
     "id": "uuid",
     "email": "user@example.com",
     "fullName": "John Smith",
-    "imageUrl": "https://...",
+    "imageUrl": null,
     "role": "USER",
     "createdAt": "2026-05-22T10:00:00Z"
   }

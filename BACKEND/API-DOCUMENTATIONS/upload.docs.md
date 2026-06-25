@@ -92,3 +92,14 @@ curl -X POST https://api.example.com/api/v1/uploads/image \
 | `401`  | _(auth message)_                                                | Not authenticated                      |
 | `429`  | `Too many requests. Please slow down and try again shortly.`    | Rate limit exceeded                    |
 | `502`  | `Failed to upload file to storage. Please try again.`           | Storage backend (Supabase) error       |
+
+---
+
+## Storage Cleanup (Avatars)
+
+Uploaded files are **not** automatically deleted just because an upload returns a URL — the file lives in storage until something explicitly removes it. Cleanup is wired into the **profile photo** flow:
+
+- When a user **removes** their photo (`PATCH /api/v1/auth/me` with `imageUrl: null`) or **replaces** it with a new upload, the **previous** avatar file is deleted from the `indriyax-assets` bucket automatically.
+- This deletion is **best-effort and non-blocking**: it runs after the profile update succeeds, only targets files inside our own bucket, and never fails the user's action if the delete itself fails (the failure is logged server-side).
+
+> Files uploaded for other resources (event thumbnails, QR codes, post covers) are **not** auto-cleaned when that resource is deleted or its image changed — only the avatar flow performs cleanup today. If orphaned event/post images become a concern at scale, a periodic cleanup job is the recommended approach.

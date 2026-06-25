@@ -1,204 +1,435 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Calendar, MapPin, User, IndianRupee, Info } from 'lucide-react';
+import {
+  Calendar, MapPin, User, IndianRupee, Info, Video, Lock,
+  ArrowLeft, ShieldCheck, Clock, CheckCircle, AlertTriangle
+} from 'lucide-react';
 import { eventsService } from './eventsService';
 import { paymentsService } from '../payments/paymentsService';
+import { authService } from '../auth/authService';
 import { useAuth } from '../auth/AuthContext';
 import ImageUploader from '../uploads/ImageUploader';
+import BrandLoader from '../../utils/BrandLoader';
+import { getErrorMessage, getSuccessMessage } from '../../utils/apiMessage';
+
+const ACCENT = '#0C6E72';
+const FALLBACK_IMG = 'https://images.unsplash.com/photo-1516841273335-e39b37888115?auto=format&fit=crop&q=80&w=1200';
 
 export default function EventDetail() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  
+
   const [event, setEvent] = useState(null);
+  const [enrollment, setEnrollment] = useState(null); // this user's enrollment for THIS event (if any)
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Payment Form State
   const [utr, setUtr] = useState('');
   const [screenshotUrl, setScreenshotUrl] = useState('');
 
+  // Load event + (if logged in) the user's enrollment status for this event
   useEffect(() => {
-    const fetchEvent = async () => {
+    let cancelled = false;
+    const load = async () => {
+      setIsLoading(true);
       try {
         const data = await eventsService.getEventBySlug(slug);
+        if (cancelled) return;
         setEvent(data);
+
+        if (user) {
+          try {
+            const enrollments = await authService.getMyEnrollments();
+            if (cancelled) return;
+            const mine = Array.isArray(enrollments)
+              ? enrollments.find((en) => en.event?.id === data.id || en.eventId === data.id)
+              : null;
+            setEnrollment(mine || null);
+          } catch {
+            // Non-fatal: if we can't read enrollments, fall back to showing the form
+            setEnrollment(null);
+          }
+        }
       } catch (error) {
-        toast.error('Event not found.');
+        toast.error(getErrorMessage(error, 'Event not found.'));
         navigate('/events');
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
-    fetchEvent();
-  }, [slug, navigate]);
+    load();
+    return () => { cancelled = true; };
+  }, [slug, navigate, user]);
 
   const handlePaymentSubmit = async (e) => {
     e.preventDefault();
-    if (!user) {
-      toast.error('You must be logged in to enroll.');
-      return navigate('/login');
-    }
+    if (!user) return navigate('/login');
 
-    if (!screenshotUrl || !utr) {
+    const cleanUtr = utr.trim().toUpperCase();
+    // Mirror backend rule (12–22 alphanumeric) for instant, specific feedback
+    if (!cleanUtr || !screenshotUrl) {
       return toast.error('Please provide both the UTR number and a payment screenshot.');
+    }
+    if (!/^[A-Z0-9]{12,22}$/.test(cleanUtr)) {
+      return toast.error('UTR must be 12–22 letters or numbers. Please check and try again.');
     }
 
     setIsSubmitting(true);
-    const loadingToast = toast.loading('Submitting verification request...');
-
+    const t = toast.loading('Submitting verification request…');
     try {
-      await paymentsService.submitPayment({
+      const res = await paymentsService.submitPayment({
         eventId: event.id,
-        amount: event.price,
-        utr: utr,
-        screenshotUrl: screenshotUrl,
+        amount: Number(event.price),
+        utr: cleanUtr,
+        screenshotUrl,
       });
-
-      toast.success('Payment submitted! Awaiting admin verification.', { id: loadingToast });
-      navigate('/dashboard'); // Or navigate to their profile/enrollments page
+      toast.success(
+        getSuccessMessage(res, 'Payment submitted! Your enrollment is pending verification.'),
+        { id: t }
+      );
+      // Redirect to profile where the pending pass now appears
+      navigate('/profile');
     } catch (error) {
-      toast.error(error.message || 'Payment submission failed.', { id: loadingToast });
+      toast.error(getErrorMessage(error, 'Payment submission failed.'), { id: t });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (isLoading) return <div className="flex h-[60vh] items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-medical-500"></div></div>;
+  const handleFreeEnrollment = async () => {
+    if (!user) return navigate('/login');
+    setIsSubmitting(true);
+    const t = toast.loading('Securing your spot…');
+    try {
+      const res = await paymentsService.submitPayment({
+        eventId: event.id,
+        amount: 0,
+        utr: 'FREE',
+        screenshotUrl: 'FREE',
+      });
+      toast.success(getSuccessMessage(res, 'Successfully enrolled!'), { id: t });
+      navigate('/profile');
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'Enrollment failed.'), { id: t });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isLoading) return <BrandLoader label="Loading event…" />;
   if (!event) return null;
 
+  const status = enrollment?.status; // 'PENDING' | 'APPROVED' | 'REJECTED' | undefined
+
   return (
-    <div className="max-w-5xl mx-auto animate-in fade-in duration-500">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* Left Column: Event Details */}
-        <div className="lg:col-span-2 space-y-8">
-          {event.thumbnail && (
-            <img src={event.thumbnail} alt={event.title} className="w-full h-64 sm:h-96 object-cover rounded-2xl shadow-sm" />
-          )}
-          
-          <div>
-            <div className="flex items-center gap-3 mb-4">
-              <span className="px-3 py-1 bg-medical-50 dark:bg-medical-900/20 text-medical-600 dark:text-medical-400 text-sm font-semibold rounded-full">
+    <div
+      className="w-full animate-in fade-in duration-500"
+      style={{ fontFamily: "'DM Sans', 'Inter', sans-serif" }}
+    >
+      {/* ════════════════════════════════════
+          HERO — full-bleed image w/ overlay
+      ════════════════════════════════════ */}
+      <div className="relative w-full h-[42vh] min-h-[320px] max-h-[480px] overflow-hidden">
+        <img src={event.thumbnail || FALLBACK_IMG} alt={event.title} className="w-full h-full object-cover" />
+        <div
+          className="absolute inset-0"
+          style={{ background: 'linear-gradient(to top, rgba(5,12,14,0.92) 0%, rgba(5,12,14,0.45) 45%, rgba(5,12,14,0.25) 100%)' }}
+        />
+
+        {/* Back button */}
+        <div className="absolute top-5 left-0 right-0">
+          <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+            <button
+              onClick={() => navigate('/events')}
+              className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-white/80 hover:text-white transition-colors bg-black/20 backdrop-blur-sm px-3.5 py-2 rounded-full group"
+            >
+              <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
+              All Events
+            </button>
+          </div>
+        </div>
+
+        {/* Title block */}
+        <div className="absolute bottom-0 left-0 right-0 pb-8">
+          <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center gap-2 mb-4">
+              <span
+                className="text-[10px] font-black tracking-[0.12em] uppercase px-3 py-1.5 rounded-full text-white"
+                style={{ backgroundColor: ACCENT }}
+              >
                 {event.type}
               </span>
               {event.isFree ? (
-                <span className="px-3 py-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 text-sm font-semibold rounded-full">
+                <span
+                  className="text-[10px] font-black tracking-[0.12em] uppercase px-3 py-1.5 rounded-full"
+                  style={{ backgroundColor: 'rgba(16,185,129,0.9)', color: '#fff' }}
+                >
                   Free Event
                 </span>
               ) : (
-                <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm font-semibold rounded-full flex items-center">
-                  <IndianRupee size={14} className="mr-1"/> {event.price}
+                <span className="inline-flex items-center gap-1 text-[12px] font-bold px-3 py-1.5 rounded-full bg-white/15 backdrop-blur-sm text-white">
+                  <IndianRupee size={13} />{event.price}
                 </span>
               )}
             </div>
-
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white mb-6">
+            <h1
+              className="text-white tracking-[-0.02em] leading-[1.08] max-w-[800px]"
+              style={{ fontFamily: "'DM Serif Display', 'Georgia', serif", fontSize: 'clamp(28px, 4.5vw, 52px)', fontWeight: 400 }}
+            >
               {event.title}
             </h1>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 bg-slate-50 dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800">
-              <div className="flex items-start gap-3">
-                <Calendar className="text-medical-500 mt-1" size={20}/>
-                <div>
-                  <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Date & Time</p>
-                  <p className="font-semibold text-slate-900 dark:text-white">
-                    {new Date(event.date).toLocaleDateString('en-IN', { weekday: 'long', month: 'long', day: 'numeric' })}<br/>
-                    {new Date(event.date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <MapPin className="text-medical-500 mt-1" size={20}/>
-                <div>
-                  <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Venue</p>
-                  <p className="font-semibold text-slate-900 dark:text-white">{event.venue}</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3 sm:col-span-2">
-                <User className="text-medical-500 mt-1" size={20}/>
-                <div>
-                  <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Speaker</p>
-                  <p className="font-semibold text-slate-900 dark:text-white">{event.speaker}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="prose prose-slate dark:prose-invert max-w-none whitespace-pre-wrap">
-              <h3 className="text-xl font-bold mb-4">About this Event</h3>
-              {event.description}
-            </div>
           </div>
         </div>
+      </div>
 
-        {/* Right Column: Ticketing & Payment Box */}
-        <div className="lg:col-span-1">
-          <div className="sticky top-24 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xl">
-            
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Enroll Now</h3>
-            
-            {event.isFree ? (
-              <div>
-                <p className="text-slate-600 dark:text-slate-400 mb-6">Reserve your spot for free today.</p>
-                <button 
-                  onClick={() => toast.success('Free enrollment logic pending!')}
-                  className="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-lg shadow transition-all"
+      {/* ════════════════════════════════════
+          BODY
+      ════════════════════════════════════ */}
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
+
+          {/* ── Left: details ── */}
+          <div className="lg:col-span-2 space-y-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {[
+                { icon: Calendar, label: 'Date', value: new Date(event.date).toLocaleDateString('en-IN', { weekday: 'long', month: 'long', day: 'numeric' }) },
+                { icon: Clock, label: 'Time', value: new Date(event.date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) },
+                { icon: event.type === 'ONLINE' ? Video : MapPin, label: event.type === 'ONLINE' ? 'Platform' : 'Venue', value: event.venue },
+                { icon: User, label: 'Speaker', value: event.speaker },
+              ].map(({ icon: Icon, label, value }) => (
+                <div
+                  key={label}
+                  className="flex items-start gap-3 p-4 rounded-[16px] bg-indriya-card dark:bg-indriya-darkCard border border-indriya-border dark:border-indriya-darkBorder"
                 >
-                  Register for Free
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                <div className="bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 p-4 rounded-xl flex items-start gap-3 text-sm">
-                  <Info className="flex-shrink-0 mt-0.5" size={18} />
-                  <p>Please scan the QR code to pay <strong>₹{event.price}</strong> using any UPI app, then submit your UTR number below.</p>
+                  <div className="w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'rgba(12,110,114,0.08)' }}>
+                    <Icon size={16} style={{ color: ACCENT }} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-[0.1em] text-indriya-muted dark:text-indriya-darkMuted mb-0.5">{label}</p>
+                    <p className="text-[14px] font-semibold text-indriya-text dark:text-indriya-darkText leading-snug">{value}</p>
+                  </div>
                 </div>
+              ))}
+            </div>
 
-                {/* QR Code Display */}
-                <div className="border-2 border-slate-200 dark:border-slate-700 rounded-xl p-4 flex flex-col items-center justify-center bg-white">
-                  <img src={event.qrCodeUrl} alt="UPI QR Code" className="w-48 h-48 object-contain mb-4" />
-                  <p className="font-mono text-sm font-semibold text-slate-800 bg-slate-100 px-3 py-1 rounded">
-                    {event.upiId}
+            <div>
+              <h2
+                className="text-indriya-text dark:text-indriya-darkText tracking-[-0.02em] mb-4"
+                style={{ fontFamily: "'DM Serif Display', serif", fontSize: 'clamp(22px, 2.5vw, 28px)', fontWeight: 400 }}
+              >
+                About this event
+              </h2>
+              <div className="text-[15px] text-indriya-muted dark:text-indriya-darkMuted leading-[1.85] whitespace-pre-wrap">
+                {event.description}
+              </div>
+            </div>
+          </div>
+
+          {/* ── Right: enrollment panel ── */}
+          <div className="lg:col-span-1">
+            <div
+              className="sticky top-28 bg-indriya-card dark:bg-indriya-darkCard border border-indriya-border dark:border-indriya-darkBorder rounded-[24px] overflow-hidden"
+              style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.08)' }}
+            >
+              {/* Panel header */}
+              <div className="px-6 py-5 border-b border-indriya-border dark:border-indriya-darkBorder" style={{ backgroundColor: 'rgba(12,110,114,0.04)' }}>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-[17px] font-bold text-indriya-text dark:text-indriya-darkText">
+                    {status === 'APPROVED' ? 'Your enrollment'
+                      : status === 'PENDING' ? 'Under review'
+                      : event.isFree ? 'Reserve your spot' : 'Enroll now'}
+                  </h3>
+                  {event.isFree ? (
+                    <span className="text-[13px] font-black" style={{ color: '#059669', fontFamily: "'DM Serif Display', serif" }}>FREE</span>
+                  ) : (
+                    <span className="inline-flex items-center gap-0.5 text-[20px]" style={{ color: ACCENT, fontFamily: "'DM Serif Display', serif" }}>
+                      <IndianRupee size={17} />{event.price}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-6">
+                {/* ── 1. Not logged in ── */}
+                {!user ? (
+                  <div className="flex flex-col items-center text-center py-4">
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: 'rgba(12,110,114,0.08)' }}>
+                      <Lock size={20} style={{ color: ACCENT }} />
+                    </div>
+                    <p className="text-[14px] text-indriya-text dark:text-indriya-darkText font-medium mb-1">Login required</p>
+                    <p className="text-[13px] text-indriya-muted dark:text-indriya-darkMuted mb-5 leading-relaxed">
+                      Sign in to view payment details and secure your spot.
+                    </p>
+                    <button
+                      onClick={() => navigate('/login')}
+                      className="w-full py-3.5 text-white font-bold text-[14px] rounded-[14px] transition-all hover:scale-[0.98]"
+                      style={{ backgroundColor: ACCENT, boxShadow: '0 4px 16px rgba(12,110,114,0.25)' }}
+                    >
+                      Log in to Enroll
+                    </button>
+                  </div>
+
+                /* ── 2. APPROVED — already enrolled ── */
+                ) : status === 'APPROVED' ? (
+                  <div className="flex flex-col items-center text-center py-2">
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: 'rgba(16,185,129,0.1)' }}>
+                      <ShieldCheck size={22} style={{ color: '#059669' }} />
+                    </div>
+                    <p className="text-[15px] font-bold text-indriya-text dark:text-indriya-darkText mb-1">You're enrolled</p>
+                    <p className="text-[13px] text-indriya-muted dark:text-indriya-darkMuted mb-5 leading-relaxed">
+                      Your spot is confirmed. See you at the event!
+                    </p>
+                    {event.type === 'ONLINE' && enrollment?.event?.meetingLink ? (
+                      <a
+                        href={enrollment.event.meetingLink}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="w-full py-3.5 text-white font-bold text-[14px] rounded-[14px] transition-all hover:scale-[0.98] inline-flex items-center justify-center gap-2"
+                        style={{ backgroundColor: ACCENT, boxShadow: '0 4px 16px rgba(12,110,114,0.25)' }}
+                      >
+                        <Video size={15} /> Join Live Session
+                      </a>
+                    ) : event.type === 'ONLINE' ? (
+                      <span className="inline-flex items-center gap-1.5 text-[12px] text-indriya-muted dark:text-indriya-darkMuted">
+                        <Video size={13} /> Meeting link activates on event day
+                      </span>
+                    ) : null}
+                    <button
+                      onClick={() => navigate('/profile')}
+                      className="mt-4 text-[13px] font-bold hover:underline" style={{ color: ACCENT }}
+                    >
+                      View my passes
+                    </button>
+                  </div>
+
+                /* ── 3. PENDING — block re-payment, show under review ── */
+                ) : status === 'PENDING' ? (
+                  <div className="flex flex-col items-center text-center py-2">
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: 'rgba(217,119,6,0.1)' }}>
+                      <Clock size={22} style={{ color: '#d97706' }} />
+                    </div>
+                    <p className="text-[15px] font-bold text-indriya-text dark:text-indriya-darkText mb-1">Payment under review</p>
+                    <p className="text-[13px] text-indriya-muted dark:text-indriya-darkMuted mb-5 leading-relaxed">
+                      You've already submitted a payment for this event. Our team is verifying it — you'll be notified once it's approved.
+                    </p>
+                    <div
+                      className="w-full flex items-center justify-center gap-2 py-3 rounded-[14px] text-[13px] font-bold cursor-not-allowed"
+                      style={{ backgroundColor: 'rgba(217,119,6,0.1)', color: '#d97706' }}
+                    >
+                      <Clock size={14} /> Awaiting Verification
+                    </div>
+                    <button
+                      onClick={() => navigate('/profile')}
+                      className="mt-4 text-[13px] font-bold hover:underline" style={{ color: ACCENT }}
+                    >
+                      Track in my passes
+                    </button>
+                  </div>
+
+                /* ── 4. FREE event (no existing pending/approved) ── */
+                ) : event.isFree ? (
+                  <div>
+                    {status === 'REJECTED' && (
+                      <div className="flex items-start gap-3 p-4 rounded-[14px] mb-4 text-[13px]" style={{ backgroundColor: 'rgba(239,68,68,0.08)', color: '#dc2626' }}>
+                        <AlertTriangle className="flex-shrink-0 mt-0.5" size={16} />
+                        <p className="leading-relaxed">Your previous registration was declined. You can register again below.</p>
+                      </div>
+                    )}
+                    <div className="flex items-start gap-3 p-4 rounded-[14px] mb-5 text-[13px]" style={{ backgroundColor: 'rgba(16,185,129,0.08)', color: '#047857' }}>
+                      <CheckCircle className="flex-shrink-0 mt-0.5" size={16} />
+                      <p className="leading-relaxed">This event is free. Reserve your spot now — seats are limited.</p>
+                    </div>
+                    <button
+                      onClick={handleFreeEnrollment}
+                      disabled={isSubmitting}
+                      className="w-full py-4 text-white font-bold text-[15px] rounded-[14px] transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed"
+                      style={{ backgroundColor: '#059669', boxShadow: '0 8px 24px rgba(16,185,129,0.25)' }}
+                    >
+                      {isSubmitting ? 'Securing spot…' : 'Register for Free'}
+                    </button>
+                  </div>
+
+                /* ── 5. PAID event — show payment form (incl. REJECTED retry) ── */
+                ) : (
+                  <div className="space-y-5">
+                    {status === 'REJECTED' && (
+                      <div className="flex items-start gap-3 p-4 rounded-[14px] text-[13px]" style={{ backgroundColor: 'rgba(239,68,68,0.08)', color: '#dc2626' }}>
+                        <AlertTriangle className="flex-shrink-0 mt-0.5" size={16} />
+                        <p className="leading-relaxed">
+                          Your previous payment was declined. Please pay again and submit a <strong>new</strong> UTR below.
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="flex items-start gap-3 p-4 rounded-[14px] text-[13px]" style={{ backgroundColor: 'rgba(12,110,114,0.06)', color: ACCENT }}>
+                      <Info className="flex-shrink-0 mt-0.5" size={16} />
+                      <p className="leading-relaxed">
+                        Scan the QR to pay <strong>₹{event.price}</strong> via UPI, then submit your UTR below.
+                      </p>
+                    </div>
+
+                    {/* QR code — kept on white for reliable scanning */}
+                    <div className="rounded-[18px] p-5 flex flex-col items-center bg-white border border-indriya-border dark:border-indriya-darkBorder">
+                      <img src={event.qrCodeUrl} alt="UPI QR Code" className="w-40 h-40 object-contain mb-3 rounded-lg" />
+                      <p className="font-mono text-[13px] font-bold text-slate-800 bg-slate-100 px-4 py-1.5 rounded-md tracking-wider">
+                        {event.upiId}
+                      </p>
+                    </div>
+
+                    <form onSubmit={handlePaymentSubmit} className="space-y-4 pt-4 border-t border-indriya-border dark:border-indriya-darkBorder">
+                      <div>
+                        <label className="block text-[11px] font-black uppercase tracking-[0.1em] text-indriya-muted dark:text-indriya-darkMuted mb-2">
+                          UTR / Transaction Reference
+                        </label>
+                        <input
+                          required
+                          type="text"
+                          minLength={12}
+                          maxLength={22}
+                          value={utr}
+                          onChange={(e) => setUtr(e.target.value)}
+                          placeholder="e.g. 312345678901"
+                          className="w-full px-4 py-3 bg-indriya-secondary dark:bg-indriya-darkSecondary border border-indriya-border dark:border-indriya-darkBorder rounded-[12px] text-[15px] font-mono text-indriya-text dark:text-white outline-none transition-colors"
+                          onFocus={e => (e.target.style.borderColor = ACCENT)}
+                          onBlur={e => (e.target.style.borderColor = '')}
+                        />
+                        <p className="text-[11px] text-indriya-muted dark:text-indriya-darkMuted mt-1.5">
+                          12–22 letters or numbers, found in your UPI app.
+                        </p>
+                      </div>
+
+                      <ImageUploader
+                        label="Payment Screenshot"
+                        folder="payments"
+                        onUploadSuccess={(url) => setScreenshotUrl(url)}
+                      />
+
+                      <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="w-full py-4 text-white font-bold text-[15px] rounded-[14px] transition-all hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed"
+                        style={{ backgroundColor: ACCENT, boxShadow: '0 8px 24px rgba(12,110,114,0.25)' }}
+                      >
+                        {isSubmitting ? 'Submitting…' : 'Submit Payment Info'}
+                      </button>
+                    </form>
+                  </div>
+                )}
+
+                {/* Trust footer */}
+                <div className="flex items-center justify-center gap-1.5 mt-5 pt-5 border-t border-indriya-border dark:border-indriya-darkBorder">
+                  <ShieldCheck size={13} className="text-indriya-muted dark:text-indriya-darkMuted" />
+                  <p className="text-[11px] text-indriya-muted dark:text-indriya-darkMuted">
+                    Secure enrollment · Verified by IndriyaX
                   </p>
                 </div>
-
-                {/* Payment Form */}
-                <form onSubmit={handlePaymentSubmit} className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">12-Digit UTR Number</label>
-                    <input
-                      required
-                      type="text"
-                      value={utr}
-                      onChange={(e) => setUtr(e.target.value)}
-                      className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-medical-500 dark:text-white"
-                      placeholder="e.g. 312345678901"
-                    />
-                  </div>
-
-                  <div>
-                    <ImageUploader 
-                      label="Payment Screenshot" 
-                      folder="payments" 
-                      onUploadSuccess={(url) => setScreenshotUrl(url)} 
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={isSubmitting || !user}
-                    className="w-full py-3 bg-medical-500 hover:bg-medical-600 text-white font-bold rounded-lg shadow-lg shadow-medical-500/30 transition-all disabled:opacity-70 mt-4"
-                  >
-                    {!user ? 'Login to Enroll' : isSubmitting ? 'Submitting...' : 'Submit Payment Info'}
-                  </button>
-                </form>
               </div>
-            )}
+            </div>
           </div>
-        </div>
 
+        </div>
       </div>
     </div>
   );

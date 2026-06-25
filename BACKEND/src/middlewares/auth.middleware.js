@@ -1,22 +1,10 @@
 import crypto from 'node:crypto';
-import { createRemoteJWKSet, jwtVerify } from 'jose';
 import prisma from '../config/prisma.config.js';
-import { config } from '../config/env.config.js';
+import { verifySupabaseToken } from '../shared/utils/verifySupabaseToken.js';
 import {
   UnauthorizedException,
   ForbiddenException,
 } from '../shared/exceptions/index.js';
-
-// Supabase asymmetric signing keys are published as a JWKS. createRemoteJWKSet
-// fetches once, caches in memory, and auto-refetches when it sees an unknown
-// key id (kid) — so key rotation needs zero code changes and adds no per-request
-// network call on the hot path.
-const JWKS = createRemoteJWKSet(
-  new URL(`${String(config.supabase.url).replace(/\/$/, '')}/auth/v1/.well-known/jwks.json`)
-);
-
-const JWT_ISSUER = `${String(config.supabase.url).replace(/\/$/, '')}/auth/v1`;
-const JWT_AUDIENCE = 'authenticated';
 
 const USER_PROFILE_SELECT = {
   id: true,
@@ -105,17 +93,10 @@ export const protect = async (req, res, next) => {
       return next();
     }
 
-    // ── Supabase JWT — verified locally against the cached JWKS ─────────
+    // ── Supabase JWT — verified locally via the shared helper ───────────
     let claims;
     try {
-      const { payload } = await jwtVerify(token, JWKS, {
-        issuer: JWT_ISSUER,
-        audience: JWT_AUDIENCE,
-        // Pin to the asymmetric algorithms Supabase actually uses. Confirm
-        // yours from the token header — keep only the one(s) that apply.
-        algorithms: ['ES256', 'RS256'],
-      });
-      claims = payload;
+      claims = await verifySupabaseToken(token);
     } catch {
       return next(
         new UnauthorizedException('Invalid or expired session. Please log in again.')
@@ -129,7 +110,7 @@ export const protect = async (req, res, next) => {
     req.user = await resolveDbUser(claims);
     return next();
   } catch (err) {
-    return next(err);
+    return next(err); // infra failure (DB) → 500/503, not a misleading 401
   }
 };
 

@@ -1,187 +1,239 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { User, Calendar, MessageSquare } from 'lucide-react';
+import { User, Calendar, ArrowLeft, Crown, Lock, Clock } from 'lucide-react';
 import { postsService } from './postsService';
-import { commentsService } from '../comments/commentsService';
 import { useAuth } from '../auth/AuthContext';
+import CommentsSection from '../comments/CommentsSection';
+import BrandLoader from '../../utils/BrandLoader';
+import { getErrorMessage, getErrorStatus } from '../../utils/apiMessage';
+
+const ACCENT = '#0C6E72';
+
+/* Rough read-time from content length */
+function readTime(content = '') {
+  const words = content.trim().split(/\s+/).length;
+  return Math.max(1, Math.round(words / 200));
+}
 
 export default function PostDetail() {
   const { slug } = useParams();
-  const { user } = useAuth();
-  
+  const navigate = useNavigate();
+  const { user, isInitializing } = useAuth();
+
   const [post, setPost] = useState(null);
-  const [comments, setComments] = useState([]);
-  const [newComment, setNewComment] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [isCommenting, setIsCommenting] = useState(false);
+  const [premiumLocked, setPremiumLocked] = useState(false);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    const fetchPostAndComments = async () => {
+    // Wait until auth has finished restoring the session, so the request
+    // carries the token. Without this, a logged-in user can race the fetch
+    // ahead of the token and wrongly hit the premium 401 gate.
+    if (isInitializing) return;
+
+    let cancelled = false;
+    const fetchPost = async () => {
+      setIsLoading(true);
+      setPremiumLocked(false);
+      setNotFound(false);
       try {
         const postData = await postsService.getPostBySlug(slug);
-        setPost(postData);
-        
-        // Fetch comments using the newly retrieved post ID
-        const commentsData = await commentsService.getCommentsForPost(postData.id);
-        setComments(commentsData);
+        if (!cancelled) setPost(postData);
       } catch (error) {
-        toast.error(error.message || 'Article could not be found.');
+        if (cancelled) return;
+        const status = getErrorStatus(error);
+        if (status === 401) {
+          // 401 = backend saw no valid auth.
+          // Only show the "premium, please log in" gate if the user really
+          // is logged out. If a logged-in user gets a 401 here, the token
+          // didn't reach the backend (expired/missing) — surface that instead
+          // of falsely claiming the article is premium-locked.
+          if (!user) {
+            setPremiumLocked(true);
+          } else {
+            toast.error(getErrorMessage(error, 'Your session may have expired. Please sign in again.'));
+            setNotFound(true);
+          }
+        } else if (status === 404) {
+          setNotFound(true);
+        } else {
+          toast.error(getErrorMessage(error, 'Article could not be loaded.'));
+          setNotFound(true);
+        }
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
+    fetchPost();
+    return () => { cancelled = true; };
+  }, [slug, user, isInitializing]);
 
-    fetchPostAndComments();
-  }, [slug]);
+  if (isLoading) return <BrandLoader label="Loading posts…" />;
 
-  const handleCommentSubmit = async (e) => {
-    e.preventDefault();
-    if (!newComment.trim()) return;
-    
-    setIsCommenting(true);
-    try {
-      await commentsService.createComment({
-        postId: post.id,
-        content: newComment
-      });
-      
-      toast.success('Comment posted!');
-      setNewComment('');
-      
-      // Refresh comments to show the new one
-      const updatedComments = await commentsService.getCommentsForPost(post.id);
-      setComments(updatedComments);
-    } catch (error) {
-      toast.error(error.message || 'Failed to post comment.');
-    } finally {
-      setIsCommenting(false);
-    }
-  };
-
-  if (isLoading) {
+  /* ── Premium gate (401) ── */
+  if (premiumLocked) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-medical-500"></div>
+      <div
+        className="w-full max-w-[640px] mx-auto px-4 sm:px-6 py-20 text-center animate-in fade-in duration-500"
+        style={{ fontFamily: "'DM Sans', 'Inter', sans-serif" }}
+      >
+        <div className="w-16 h-16 rounded-full mx-auto mb-6 flex items-center justify-center" style={{ backgroundColor: 'rgba(217,119,6,0.1)' }}>
+          <Crown size={28} style={{ color: '#d97706' }} />
+        </div>
+        <h1
+          className="text-indriya-text dark:text-indriya-darkText tracking-[-0.02em] mb-3"
+          style={{ fontFamily: "'DM Serif Display', serif", fontSize: 'clamp(26px, 4vw, 38px)', fontWeight: 400 }}
+        >
+          This is a premium article
+        </h1>
+        <p className="text-[15px] text-indriya-muted dark:text-indriya-darkMuted leading-[1.8] mb-8 max-w-[440px] mx-auto">
+          Sign in to read the full article and unlock all premium content on IndriyaX.
+        </p>
+        <div className="flex items-center justify-center gap-3 flex-wrap">
+          <button
+            onClick={() => navigate('/login')}
+            className="inline-flex items-center gap-2 text-white text-[14px] font-bold px-7 py-3.5 rounded-full transition-all hover:scale-[0.98]"
+            style={{ backgroundColor: ACCENT, boxShadow: '0 4px 16px rgba(12,110,114,0.25)' }}
+          >
+            <Lock size={15} /> Log in to read
+          </button>
+          <Link
+            to="/posts"
+            className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-indriya-muted dark:text-indriya-darkMuted hover:text-[#0C6E72] transition-colors"
+          >
+            <ArrowLeft size={14} /> Back to posts
+          </Link>
+        </div>
       </div>
     );
   }
 
-  if (!post) return <div className="text-center py-20 text-xl font-semibold">Post not found.</div>;
+  /* ── Not found (404) ── */
+  if (notFound || !post) {
+    return (
+      <div
+        className="w-full max-w-[640px] mx-auto px-4 sm:px-6 py-20 text-center animate-in fade-in duration-500"
+        style={{ fontFamily: "'DM Sans', 'Inter', sans-serif" }}
+      >
+        <h1
+          className="text-indriya-text dark:text-indriya-darkText mb-3"
+          style={{ fontFamily: "'DM Serif Display', serif", fontSize: 'clamp(26px, 4vw, 38px)', fontWeight: 400 }}
+        >
+          Article not found
+        </h1>
+        <p className="text-[15px] text-indriya-muted dark:text-indriya-darkMuted mb-8">
+          This article may have been removed or is not yet published.
+        </p>
+        <Link
+          to="/posts"
+          className="inline-flex items-center gap-1.5 text-[14px] font-bold hover:underline"
+          style={{ color: ACCENT }}
+        >
+          <ArrowLeft size={14} /> Back to all posts
+        </Link>
+      </div>
+    );
+  }
 
   return (
-    <article className="max-w-3xl mx-auto animate-in fade-in duration-500">
-      
-      {/* Article Header */}
-      <header className="mb-10 text-center sm:text-left">
-        {post.tags && post.tags.length > 0 && (
-          <div className="flex gap-2 flex-wrap justify-center sm:justify-start mb-4">
-            {post.tags.map(tag => (
-              <span key={tag} className="px-3 py-1 bg-medical-50 dark:bg-medical-900/20 text-medical-600 dark:text-medical-400 text-sm font-semibold rounded-full">
+    <div
+      className="w-full animate-in fade-in duration-500"
+      style={{ fontFamily: "'DM Sans', 'Inter', sans-serif" }}
+    >
+      <article className="max-w-[760px] mx-auto px-4 sm:px-6 py-8 sm:py-12">
+
+        {/* Back */}
+        <Link
+          to="/posts"
+          className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-indriya-muted dark:text-indriya-darkMuted hover:text-[#0C6E72] transition-colors mb-8 group"
+        >
+          <ArrowLeft size={13} className="group-hover:-translate-x-0.5 transition-transform" />
+          All Posts
+        </Link>
+
+        {/* Header */}
+        <header className="mb-8">
+          <div className="flex items-center gap-2 flex-wrap mb-5">
+            {post.isPremium && (
+              <span
+                className="inline-flex items-center gap-1 text-[9px] font-black tracking-[0.12em] uppercase px-2.5 py-1 rounded-full text-white"
+                style={{ backgroundColor: '#d97706' }}
+              >
+                <Crown size={10} /> Premium
+              </span>
+            )}
+            {post.tags && post.tags.map(tag => (
+              <span
+                key={tag}
+                className="text-[10px] font-black tracking-[0.1em] uppercase px-2.5 py-1 rounded-full"
+                style={{ color: ACCENT, backgroundColor: 'rgba(12,110,114,0.08)' }}
+              >
                 {tag}
               </span>
             ))}
           </div>
-        )}
-        
-        <h1 className="text-4xl sm:text-5xl font-extrabold text-slate-900 dark:text-white leading-tight mb-6">
-          {post.title}
-        </h1>
-        
-        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-sm text-slate-600 dark:text-slate-400 border-y border-slate-200 dark:border-slate-800 py-4">
-          <div className="flex items-center gap-2">
-            {post.author?.imageUrl ? (
-              <img src={post.author.imageUrl} alt={post.author.fullName} className="w-8 h-8 rounded-full object-cover" />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
-                <User size={16} />
-              </div>
-            )}
-            <span className="font-semibold text-slate-900 dark:text-slate-200">{post.author?.fullName || 'Anonymous'}</span>
-          </div>
-          <span className="hidden sm:inline">•</span>
-          <div className="flex items-center gap-1">
-            <Calendar size={16} />
-            <span>{new Date(post.createdAt).toLocaleDateString('en-IN', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
-          </div>
-        </div>
-      </header>
 
-      {/* Cover Image */}
-      {post.coverImage && (
-        <div className="mb-10 rounded-2xl overflow-hidden shadow-md">
-          <img src={post.coverImage} alt="Cover" className="w-full h-auto object-cover max-h-[500px]" />
-        </div>
-      )}
+          <h1
+            className="text-indriya-text dark:text-indriya-darkText tracking-[-0.02em] leading-[1.1] mb-6"
+            style={{ fontFamily: "'DM Serif Display', 'Georgia', serif", fontSize: 'clamp(30px, 5vw, 52px)', fontWeight: 400 }}
+          >
+            {post.title}
+          </h1>
 
-      {/* Article Body */}
-      <div className="prose prose-lg dark:prose-invert prose-medical max-w-none mb-16 whitespace-pre-wrap">
-        {post.content}
-      </div>
+          {post.excerpt && (
+            <p className="text-[18px] text-indriya-muted dark:text-indriya-darkMuted leading-[1.7] mb-6">
+              {post.excerpt}
+            </p>
+          )}
 
-      {/* Comments Section */}
-      <section className="border-t border-slate-200 dark:border-slate-800 pt-10">
-        <div className="flex items-center gap-2 mb-8">
-          <MessageSquare className="text-medical-500" size={24} />
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Discussion ({comments.length})</h2>
-        </div>
-
-        {/* Comment Input */}
-        {user ? (
-          <form onSubmit={handleCommentSubmit} className="mb-10 bg-slate-50 dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
-            <textarea
-              required
-              rows={3}
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              placeholder="Add to the discussion..."
-              className="w-full px-4 py-3 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-medical-500 dark:text-white resize-y mb-3"
-            />
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                disabled={isCommenting}
-                className="px-6 py-2 bg-medical-500 hover:bg-medical-600 text-white font-semibold rounded-lg shadow transition-all disabled:opacity-70"
-              >
-                {isCommenting ? 'Posting...' : 'Post Comment'}
-              </button>
-            </div>
-          </form>
-        ) : (
-          <div className="mb-10 p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-center">
-            <p className="text-slate-600 dark:text-slate-400">Please sign in to join the discussion.</p>
-          </div>
-        )}
-
-        {/* Comments List */}
-        <div className="space-y-6">
-          {comments.map((comment) => (
-            <div key={comment.id} className="flex gap-4">
-              <div className="flex-shrink-0">
-                {comment.user?.imageUrl ? (
-                  <img src={comment.user.imageUrl} alt="User" className="w-10 h-10 rounded-full object-cover" />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
-                    <User size={20} className="text-slate-500" />
-                  </div>
-                )}
-              </div>
-              <div className="flex-grow bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl rounded-tl-none">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="font-semibold text-slate-900 dark:text-slate-200">
-                    {comment.user?.fullName || 'Anonymous'}
-                  </span>
-                  <span className="text-xs text-slate-500">
-                    {new Date(comment.createdAt).toLocaleDateString('en-IN')}
-                  </span>
+          {/* Byline */}
+          <div className="flex flex-wrap items-center gap-4 py-5 border-y border-indriya-border dark:border-indriya-darkBorder">
+            <div className="flex items-center gap-2.5">
+              {post.author?.imageUrl ? (
+                <img src={post.author.imageUrl} alt={post.author.fullName} className="w-9 h-9 rounded-full object-cover" />
+              ) : (
+                <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(12,110,114,0.12)' }}>
+                  <User size={16} style={{ color: ACCENT }} />
                 </div>
-                <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap">{comment.content}</p>
-              </div>
+              )}
+              <span className="text-[14px] font-bold text-indriya-text dark:text-indriya-darkText">
+                {post.author?.fullName || 'Anonymous'}
+              </span>
             </div>
-          ))}
-        </div>
-      </section>
+            <span className="text-indriya-border dark:text-indriya-darkBorder">·</span>
+            <div className="flex items-center gap-1.5 text-[13px] text-indriya-muted dark:text-indriya-darkMuted">
+              <Calendar size={13} />
+              <span>{new Date(post.createdAt).toLocaleDateString('en-IN', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+            </div>
+            <span className="text-indriya-border dark:text-indriya-darkBorder">·</span>
+            <div className="flex items-center gap-1.5 text-[13px] text-indriya-muted dark:text-indriya-darkMuted">
+              <Clock size={13} />
+              <span>{readTime(post.content)} min read</span>
+            </div>
+          </div>
+        </header>
 
-    </article>
+        {/* Cover */}
+        {post.coverImage && (
+          <div className="mb-10 rounded-[20px] overflow-hidden border border-indriya-border dark:border-indriya-darkBorder">
+            <img src={post.coverImage} alt={post.title} className="w-full h-auto object-cover max-h-[520px]" />
+          </div>
+        )}
+
+        {/* Body */}
+        <div
+          className="text-[17px] text-indriya-text dark:text-indriya-darkText leading-[1.85] whitespace-pre-wrap mb-16"
+          style={{ letterSpacing: '-0.003em' }}
+        >
+          {post.content}
+        </div>
+
+        {/* ── Comments (published posts only; component self-guards on 404) ── */}
+        <div className="pt-10 border-t border-indriya-border dark:border-indriya-darkBorder">
+          <CommentsSection postId={post.id} />
+        </div>
+      </article>
+    </div>
   );
 }
