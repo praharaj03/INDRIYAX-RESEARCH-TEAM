@@ -7,8 +7,10 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon --ignore uploads/ --ignore tmp/ --ignore public/ src/server.js",
+    "build": "prisma generate",
     "prisma:generate": "prisma generate",
-    "prisma:push": "prisma db push"
+    "prisma:push": "prisma db push",
+    "postinstall": "prisma generate"
   },
   "keywords": [],
   "author": "",

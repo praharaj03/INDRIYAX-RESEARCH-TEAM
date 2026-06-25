@@ -7,10 +7,12 @@ dotenv.config();
 // not surface as a confusing 500 on the first request that needs it. ──────
 const REQUIRED = [
   'DATABASE_URL',
+  'DIRECT_URL',
   'SUPABASE_URL',
   'SUPABASE_SERVICE_ROLE_KEY',
   'SUPABASE_JWT_SECRET',
 ];
+
 
 const missing = REQUIRED.filter((key) => !process.env[key]?.trim());
 if (missing.length > 0) {
@@ -34,6 +36,7 @@ export const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
   databaseUrl: process.env.DATABASE_URL,
+  directUrl: process.env.DIRECT_URL,
   supabase: {
     jwtSecret: process.env.SUPABASE_JWT_SECRET,
     url: process.env.SUPABASE_URL,
